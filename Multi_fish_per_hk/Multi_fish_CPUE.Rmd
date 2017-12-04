@@ -1,4 +1,4 @@
-testing
+
 ---
 title: "CPUE Analysis"
 author: "Danny Cooper"
@@ -14,6 +14,7 @@ bibliography: Format/library.bib
 # Danny Cooper
 # IPHC Data Analysis
 #
+setwd("//nmfs.local/AKC-ABL/Users/Danny.Cooper/My Documents/Work")
 # Source file to install/load necessary packages
 #
 source("Packages/packages.R")
@@ -258,10 +259,12 @@ CPUE_data$Common_Name[CPUE_data$Common_Name == "Bering/Alaska Skate"] <-
 #
 # Prepare any objects for use inside the for-loop
 #
-Y <- 11 #what values does this represent? Suggest not hard coding this value
+unq_key <- unique(CPUE_data[,c("Year", "Common_Name")])
+#
+Y <- length(unique(unq_key$Year)) #what values does this represent? Suggest not hard coding this value
 #Y<-length(unique(CPUE_data$Year))   #Is this correct?
 #
-I <- 66 #same comment
+I <- length(unique(unq_key$Common_Name)) #same comment
 #I<- length(unique(CPUE_data$Common_Name))
 #
 Results <- matrix(ncol = Y, nrow = I)
@@ -298,18 +301,19 @@ conf_int2 <- array(dim = c(I,5,Y))
 ###
 
 #
-for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data changes, same for I
-  CPUE_year <- subset(CPUE_data, CPUE_data$Year == unique(CPUE_data$Year)[[y]]) #I don't think the double square brackets are necessary?
-  for(i in 1:I){ #this is set up a little weird, you have i through 66, but there aren't 66 species in the CPUE_year loop data
+ #I don't think the double square brackets are necessary?
+for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66, but there aren't 66 species in the CPUE_year loop data
     #suggest having it 1:length(unique$CPUE_year)
-    CPUE_spec <- subset(CPUE_year, CPUE_year$Common_Name == unique(CPUE_data$Common_Name)[[i]]) #this is going to look for things that aren't there because you are looking at the species list from the larger data set
+  spec <- unq_key[i, 2]
+  year <- unq_key[i, 1]
+  row <- match(spec, unique(unq_key$Common_Name))
+  col <- match(year, unique(unq_key$Year))
+  CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,] #this is going to look for things that aren't there because you are looking at the species list from the larger data set
     #suggest: CPUE_spec<-CPUE_year[CPUE_year$Common_Name==unique(CPUE_year)[i],]
     CPUE_spec <- na.omit(CPUE_spec)
-    spec <- unique(CPUE_data$Common_Name)[[i]]
-    year <- unique(CPUE_data$Year)[[y]]
     if(nrow(CPUE_spec) == 0) { #if you adopt my suggested changes, this chunk isn't necessary.
-      Small[i,y] <- paste("No Samples")
-      Sample[i,y] <- 0
+      Small[row, col] <- paste("No Samples")
+      Sample[row, col] <- 0
       next}
     jpeg(paste("IPHC_Data/Plots/", spec, year,".jpg", sep = "")) #I recommend doing these as .png, better across platforms
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
@@ -319,9 +323,9 @@ for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data chang
         paste("Plot of", spec,year))
     abline(a = 0, b = 1, lty = 3)
     dev.off()
-    Sample[i,y] <- nrow(CPUE_spec)
+    Sample[row, col] <- nrow(CPUE_spec)
     if(nrow(CPUE_spec) == 1) {
-    Small[i,y] <- paste("Small Sample Size")
+    Small[row, col] <- paste("Small Sample Size")
     next} else {
     mymean <- function(Primary_CPUE, j) mean(Primary_CPUE[j])
     myboot <- with(CPUE_spec, boot(Primary_CPUE, mymean, R = 1000))
@@ -329,25 +333,25 @@ for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data chang
     #e.g., 2014 Great Sculpin. In these cases, the confidence intervals would
     #equal the mean value
     boot_conf <- boot.ci(myboot, type = "bca")
-    conf_int[i, ,y] <- boot_conf$bca
-    mymeans[i,y] <- myboot$t0
+    conf_int[row, , col] <- boot_conf$bca
+    mymeans[row, col] <- myboot$t0
     mymean2 <- function(Secondary_CPUE, j) mean(Secondary_CPUE[j])
     myboot2 <- with(CPUE_spec, boot(Secondary_CPUE, mymean2, R = 1000))
     boot_conf2 <- boot.ci(myboot2, type = "bca")
-    conf_int2[i, ,y] <- boot_conf2$bca
-    mymeans2[i,y] <- myboot2$t0
+    conf_int2[row, , col] <- boot_conf2$bca
+    mymeans2[row, col] <- myboot2$t0
     model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = CPUE_spec)
     jpeg(paste("IPHC_Data/Plots/QQof",spec,year,".jpg", sep = ""))
     layout(rbind(c(1,2), c(3,3)))
     qqnorm(CPUE_spec$Primary_CPUE, ylim = c(-0.5,0.5), main = 
-        "QQ-plot of Primary CPUE \n", i,y)
+        "QQ-plot of Primary CPUE \n", row, col)
     qqline(CPUE_spec$Primary_CPUE, lty = 3)
     qqnorm(CPUE_spec$Secondary_CPUE, ylim = c(-0.5,0.5), main = 
-        "QQ-plot of Secondary CPUE \n", i,y)
+        "QQ-plot of Secondary CPUE \n", row, col)
     qqline(CPUE_spec$Secondary_CPUE, lty = 3)
     qqnorm(residuals(model), ylim = c(-0.5,0.5),
         main = "QQ-plot of Residuals obtained from \nSimple Regression",
-        "Model \n", i,y)
+        "Model \n", row, col)
     qqline(residuals(model), lty = 3)
     dev.off()
     CPUE_rank <- melt(CPUE_spec, id.vars = c("Station", "Year", 
@@ -359,11 +363,11 @@ for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data chang
     result <- with(CPUE_rank, t.test(Primary_CPUE, Secondary_CPUE, var.equal =
     FALSE))
     if (result$p.value < 0.05) {
-    Significant[i,y] <- paste("Different Means")
+    Significant[row, col] <- paste("Different Means")
         } else {
-        Significant[i,y] <- paste("Similar Means")}
-    Results[i,y] <- result$p.value
-}}}
+        Significant[row, col] <- paste("Similar Means")}
+    Results[row, col] <- result$p.value
+}}
 #
 # Format all of the results into various dataframes for output into an Word
 # table
