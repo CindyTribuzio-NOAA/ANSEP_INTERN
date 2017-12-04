@@ -14,7 +14,6 @@ bibliography: Format/library.bib
 # Danny Cooper
 # IPHC Data Analysis
 #
-setwd("//nmfs.local/AKC-ABL/Users/Danny.Cooper/My Documents/Work")
 # Source file to install/load necessary packages
 #
 source("Packages/packages.R")
@@ -329,16 +328,20 @@ for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66
     next} else {
     mymean <- function(Primary_CPUE, j) mean(Primary_CPUE[j])
     myboot <- with(CPUE_spec, boot(Primary_CPUE, mymean, R = 1000))
+    if(sd(myboot$t) != 0){
+    boot_conf <- boot.ci(myboot, type = "bca")
+    conf_int[row, ,col] <- boot_conf$bca
+    }
     #Looks like need to add an "if" statement (similar to a few lines above) here for instances where there is no variance 
     #e.g., 2014 Great Sculpin. In these cases, the confidence intervals would
     #equal the mean value
-    boot_conf <- boot.ci(myboot, type = "bca")
-    conf_int[row, , col] <- boot_conf$bca
     mymeans[row, col] <- myboot$t0
     mymean2 <- function(Secondary_CPUE, j) mean(Secondary_CPUE[j])
     myboot2 <- with(CPUE_spec, boot(Secondary_CPUE, mymean2, R = 1000))
+    if(sd(myboot2$t) != 0){
     boot_conf2 <- boot.ci(myboot2, type = "bca")
-    conf_int2[row, , col] <- boot_conf2$bca
+    conf_int2[row, ,col] <- boot_conf2$bca
+    }
     mymeans2[row, col] <- myboot2$t0
     model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = CPUE_spec)
     jpeg(paste("IPHC_Data/Plots/QQof",spec,year,".jpg", sep = ""))
@@ -354,6 +357,7 @@ for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66
         "Model \n", row, col)
     qqline(residuals(model), lty = 3)
     dev.off()
+    if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
     CPUE_rank <- melt(CPUE_spec, id.vars = c("Station", "Year", 
         "Common_Name"))
     colnames(CPUE_rank) <- c("Station", "Year", "Common_Name", "Type", "CPUE")
@@ -367,6 +371,7 @@ for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66
         } else {
         Significant[row, col] <- paste("Similar Means")}
     Results[row, col] <- result$p.value
+    }
 }}
 #
 # Format all of the results into various dataframes for output into an Word
@@ -510,24 +515,32 @@ diff.means <- function(d, f)
      c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
 }
 #
+unq_key <- unique(boot_data[,c("Year", "Common_Name")])
+#
+I <- length(unique(boot_data$Common_Name))
+#
+Y <- length(unique(boot_data$Year))
+#
 boot_result <- array(dim = c(I, 5, Y))
 #
 mean <- matrix(ncol = Y, nrow = I)
 #
-for(y in 1:11){
-  boot_year <- subset(boot_data, boot_data$Year == unique(boot_data$Year)[[y]])
-  for(i in 1:66){
-    boot_spec <- subset(boot_year, boot_year$Common_Name == unique(boot_data$Common_Name)[[i]])
-    boot_spec <- na.omit(boot_spec)
-    spec <- unique(boot_data$Common_Name)[[i]]
-    year <- unique(boot_data$Year)[[y]]
-    if (nrow(boot_spec) < 3) {next}
-    type_boot <- boot(boot_spec, diff.means, R = 1000, strata = 
-        boot_spec[ ,5])
-    boot_test <- boot.ci(type_boot, type = "perc")
-    boot_result[i, , y] <- boot_test$perc
-    mean[i, y] <- type_boot$t0[[1]]
-}}
+for(i in 1:nrow(unq_key)){
+  spec <- unq_key[i, 2]
+  year <- unq_key[i, 1]
+  row <- match(spec, unique(unq_key$Common_Name))
+  col <- match(year, unique(unq_key$Year))
+  boot_spec <- boot_data[boot_data$Year == year & boot_data$Common_Name == spec,]
+  boot_spec <- na.omit(boot_spec)
+  if (nrow(boot_spec) < 3) {next}
+  type_boot <- boot(boot_spec, diff.means, R = 1000, strata = 
+      boot_spec[ ,5])
+  if(sd(type_boot$t) != 0){
+  boot_test <- boot.ci(type_boot, type = "perc")
+  boot_result[row, , col] <- boot_test$perc
+  }
+  mean[row, col] <- type_boot$t0[1]
+}
 #
 # Format these results as a dataframe for output to Word
 #
@@ -955,13 +968,17 @@ for(i in unique(catch_data6$Common_Name)){
     next} else {
       mymean <- function(priCPUE, j) mean(priCPUE[j])
       myboot <- with(CPUE.spec, boot(priCPUE, mymean, R = 1000))
+      if(sd(myboot$t) != 0){
       boot.conf <- boot.ci(myboot, type = "bca")
       conf.int[i, ] <- boot.conf$bca
+      }
       mymeans[i] <- myboot$t0
       mymean2 <- function(secCPUE, j) mean(secCPUE[j])
       myboot2 <- with(CPUE.spec, boot(secCPUE, mymean2, R = 1000))
+      if(sd(myboot2$t) != 0){
       boot.conf2 <- boot.ci(myboot2, type = "bca")
       conf.int2[i, ] <- boot.conf2$bca
+      }
       mymeans2[i] <- myboot2$t0
       model <- lm(formula = secCPUE ~ priCPUE, data = CPUE.spec)
       jpeg(paste("NMFS_Data/Plots/QQof",i,".jpg", sep = ""))
@@ -977,6 +994,7 @@ for(i in unique(catch_data6$Common_Name)){
              "Model \n", i)
       qqline(residuals(model), lty = 3)
       dev.off()
+      if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
       CPUE.rank <- melt(CPUE.spec, id.vars = c("Station", "Common_Name"))
       colnames(CPUE.rank) <- c("Station", "Common_Name", "Type", "CPUE")
       CPUE.rank$CPUE <- with(CPUE.rank, rank(CPUE, ties.method = "average"))
@@ -988,6 +1006,7 @@ for(i in unique(catch_data6$Common_Name)){
       } else {
         Significant[i] <- paste("Similar Means")}
       Results[i] <- result$p.value
+      }
     }}
 #
 # Format all of the results into various dataframes for output into an Excel
@@ -1086,8 +1105,10 @@ for(i in unique(boot.data$Common_Name)){
   boot.spec <- subset(boot.data, boot.data$Common_Name == i)
   if (nrow(boot.spec) < 3) {next}
   type.boot <- boot(boot.spec, diff.means, R = 1000, strata = boot.spec[ ,4])
+  if(sd(type_boot$t != 0)){
   boot.test <- boot.ci(type.boot, type = "perc")
   boot.result[i, ] <- boot.test$perc
+  }
   mean[i] <- type.boot$t0
 }
 #
