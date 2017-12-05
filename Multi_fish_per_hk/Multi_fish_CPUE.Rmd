@@ -1234,9 +1234,9 @@ abline(a = 0, b = 1, lty = 3)
 #
 # Create a linear model of the representative species CPUE's
 #
-model <- lm(formula = secCPUE ~ priCPUE, data = pac.cod)
+model <- lm(formula = secCPUE ~ priCPUE, data = pac_cod)
 #
-model2 <- lm(formula = secCPUE ~ priCPUE, data = lin.cod)
+model2 <- lm(formula = secCPUE ~ priCPUE, data = lin_cod)
 #
 # Output QQ-plots of species in a single figure with reference lines
 #
