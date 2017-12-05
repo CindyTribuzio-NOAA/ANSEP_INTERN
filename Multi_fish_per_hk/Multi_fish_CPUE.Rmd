@@ -436,9 +436,9 @@ Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"),
 Significant <- subset(Significant_Results, Significant == 
     "Different Means")
 #
-if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Species", "Year","p value"))}
+if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Species", "Year", "p-value"))}
 #
-conf_names <- colnames(summary(boot.conf$bca))
+conf_names <- colnames(summary(boot_conf$bca))
 #
 Common_Names <- unique(CPUE_data$Common_Name)
 #
@@ -535,7 +535,7 @@ for(i in 1:nrow(unq_key)){
   if (nrow(boot_spec) < 3) {next}
   type_boot <- boot(boot_spec, diff.means, R = 1000, strata = 
       boot_spec[ ,5])
-  if(sd(type_boot$t) != 0){
+  if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
   boot_test <- boot.ci(type_boot, type = "perc")
   boot_result[row, , col] <- boot_test$perc
   }
@@ -770,26 +770,30 @@ catch_data <- read.csv("NMFS_Data/ABL_2014_multi.csv", na.strings = "", header =
 catch_codes <- read.csv("NMFS_Data/Species_Catch_Codes.csv", na.strings = "", header = 
     TRUE)
 #
+names(catch_codes)[3:6] <- c("Polycorder_Number", "Species_Code", "Common_Name", "Scientific_Name")
+#
 catch_full <- read.csv("NMFS_Data/ABL_2014_full.csv", na.strings = "", header = TRUE)
+#
+names(catch_full)[c(6, 44, 45, 51)] <- c("Station_Number", "Species_Code", "Common_Name", "Ineffective_Hooks")
 #
 # Combine the multi dataset and catch codes to convert the polycorder numbers to species codes
 # for Primary and Secondary catch
 #
 catch_data <- merge(catch_data, catch_codes, by.x = "Primary", by.y = 
-    "Polycorder.Number", all.x = TRUE)
+    "Polycorder_Number", all.x = TRUE)
 #
-catch_data <- subset(catch_data, select = c("Station", "Species.Code", 
+catch_data <- subset(catch_data, select = c("Station", "Species_Code", 
     "Secondary"))
 #
-colnames(catch_data)[colnames(catch_data) == "Species.Code"] <- "Primary"
+colnames(catch_data)[colnames(catch_data) == "Species_Code"] <- "Primary"
 #
 catch_data <- merge(catch_data, catch_codes, by.x = "Secondary", by.y = 
-    "Polycorder.Number", all.x = TRUE)
+    "Polycorder_Number", all.x = TRUE)
 #
 catch_data <- subset(catch_data, select = c("Station", "Primary", 
-    "Species.Code"))
+    "Species_Code"))
 #
-colnames(catch_data)[colnames(catch_data) == "Species.Code"] <- 
+colnames(catch_data)[colnames(catch_data) == "Species_Code"] <- 
     "Secondary"
 #
 # Obtain unique list of species from the Primary and Secondary catch
@@ -798,13 +802,13 @@ speclist <- unique(c(catch_data$Primary, catch_data$Secondary))
 #
 # Extract all data for each species in the species list from the full dataset
 #
-species_data <- catch_full[(catch_full$Species.Code%in%speclist), 
-    c("Station.Number", "Species.Code", "Common_Name", "Catch", "Hachi", 
-    "Ineffective.Hooks")]
+species_data <- catch_full[(catch_full$Species_Code%in%speclist), 
+    c("Station_Number", "Species_Code", "Common_Name", "Catch", "Hachi", 
+    "Ineffective_Hooks")]
 #
 # Obtain the maximum number of Hachi from each station
 #
-station <- as.data.frame(with(species_data, tapply(Hachi, list(Station.Number), max)))
+station <- as.data.frame(with(species_data, tapply(Hachi, list(Station_Number), max)))
 #
 station$number <- as.numeric(rownames(station))
 #
@@ -818,7 +822,7 @@ station$tothks <- station$maxHachi*45
 #
 # Obtain the number of ineffective hooks from each station and add to station data
 #
-hachks <- as.data.frame(with(species_data, tapply(Ineffective.Hooks, list(Station.Number, Hachi), mean)))
+hachks <- as.data.frame(with(species_data, tapply(Ineffective_Hooks, list(Station_Number, Hachi), mean)))
 #
 ineffhks <- rowSums(hachks, na.rm = TRUE)
 #
@@ -826,13 +830,13 @@ station <- cbind(station, ineffhks)
 #
 # Calculate the catch for each species at each station from the full dataset
 #
-spec_catch <- cast(species_data, Station.Number ~ Species.Code, sum, value = 
+spec_catch <- cast(species_data, Station_Number ~ Species_Code, sum, value = 
     "Catch")
 #
 # Combine the station and species catch data
 #
 catch_data2 <- merge(station, spec_catch, by.x = "Station", by.y = 
-    "Station.Number")
+    "Station_Number")
 #
 # Reformat to a more usable form
 #
@@ -850,7 +854,7 @@ pri_data2 <- cast(pri_data, Station ~ Primary, sum, value = "freq")
 #
 pri_data3 <- melt(pri_data2, id = "Station")
 #
-colnames(pri_data3) <- c("Station", "Primary.Catch", "Species")
+colnames(pri_data3) <- c("Station", "Primary_Catch", "Species")
 #
 # Combine the calculated catches to get the full primary catch
 #
@@ -858,7 +862,7 @@ catch_data4 <- join(catch_data3, pri_data3, type = "full")
 #
 catch_data4[is.na(catch_data4)] <- 0
 #
-catch_data4$priCatch <- rowSums(catch_data4[c("Catch", "Primary.Catch")])
+catch_data4$priCatch <- rowSums(catch_data4[c("Catch", "Primary_Catch")])
 #
 # Calculate the primary CPUE
 #
@@ -873,7 +877,7 @@ sec_data2 <- cast(sec_data, Station ~ Secondary, sum, value = "freq")
 #
 sec_data3 <- melt(sec_data2, id = "Station")
 #
-colnames(sec_data3) <- c("Station", "Secondary.Catch", "Species")
+colnames(sec_data3) <- c("Station", "Secondary_Catch", "Species")
 #
 # Combine the calculated catches to get secondary catch (ommitting primary catch from multi dataset)
 #
@@ -881,7 +885,7 @@ catch_data5 <- join(catch_data4, sec_data3, type = "full")
 #
 catch_data5[is.na(catch_data5)] <- 0
 #
-catch_data5$secCatch <- rowSums(catch_data5[c("Catch", "Secondary.Catch")])
+catch_data5$secCatch <- rowSums(catch_data5[c("Catch", "Secondary_Catch")])
 #
 catch_data5 <- catch_data5[order(catch_data5$Station),]
 #
@@ -898,7 +902,7 @@ catch_data5$Catch[catch_data5$Catch == 0] <- NA
 #
 catch_data5 <- na.omit(catch_data5)
 #
-catch_full <- rename(catch_full, replace = c("Species.Code" = "Species"))
+catch_full <- rename(catch_full, replace = c("Species_Code" = "Species"))
 #
 # Obtain a list of the unique species from the full dataset
 #
@@ -1039,9 +1043,9 @@ Significant <- subset(Significant_Results, Significant == "Different Means")
 if(nrow(Significant) > 0) {colnames(Significant) <- c("Species", "p-value", "Significant")
   Significant <- subset(Significant, select = c("Species", "p-value"))}
 #
-colnames(conf.int) <- c("Levels", "Unk", "Unk2", "Primary Lower CPUE", "Primary Upper CPUE")
+colnames(conf_int) <- c("Levels", "Unk", "Unk2", "Primary Lower CPUE", "Primary Upper CPUE")
 #
-colnames(conf.int2) <- c("Levels", "Unk", "Unk2", "Secondary Lower CPUE", "Secondary Upper CPUE")
+colnames(conf_int2) <- c("Levels", "Unk", "Unk2", "Secondary Lower CPUE", "Secondary Upper CPUE")
 #
 conf_int <- subset(conf_int, select = c("Primary Lower CPUE", "Primary Upper CPUE"))
 #
@@ -1105,7 +1109,7 @@ for(i in unique(boot_data$Common_Name)){
   boot_spec <- subset(boot_data, boot_data$Common_Name == i)
   if (nrow(boot_spec) < 3) {next}
   type_boot <- boot(boot_spec, diff.means, R = 1000, strata = boot_spec[ ,4])
-  if(sd(type_boot$t != 0)){
+  if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
   boot_test <- boot.ci(type_boot, type = "perc")
   boot_result[i, ] <- boot_test$perc
   }
