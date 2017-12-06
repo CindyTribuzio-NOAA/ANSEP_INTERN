@@ -171,9 +171,7 @@ CPUE_data <- subset(catch_hook, select = c("Station", "Year", "Common_Name",
 #
 # Remove NA's and NULL values from the dataset
 #
-CPUE_data[CPUE_data == "NULL"] <- NA
-#
-CPUE_data <- na.omit(CPUE_data)
+CPUE_data <- CPUE_data[complete.cases(CPUE_data), ]
 #The above two lines can be done with:
 #CPUE_data<-CPUE_data[complete.cases(CPUE_data),]
 #
@@ -260,11 +258,9 @@ CPUE_data$Common_Name[CPUE_data$Common_Name == "Bering/Alaska Skate"] <-
 #
 unq_key <- unique(CPUE_data[,c("Year", "Common_Name")])
 #
-Y <- length(unique(unq_key$Year)) #what values does this represent? Suggest not hard coding this value
-#Y<-length(unique(CPUE_data$Year))   #Is this correct?
+Y <- length(unique(unq_key$Year))
 #
-I <- length(unique(unq_key$Common_Name)) #same comment
-#I<- length(unique(CPUE_data$Common_Name))
+I <- length(unique(unq_key$Common_Name))
 #
 Results <- matrix(ncol = Y, nrow = I)
 #
@@ -288,33 +284,14 @@ conf_int2 <- array(dim = c(I,5,Y))
 #
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
-
-##NOTE: you could make this a single for loop by doing the following:
-##unq_key<-unique(CPUE_data[,c("Year","Common_Name")])
-#Then loop through the rows of the unq_key starting with the lines below:
-#for(i in 1:nrow(unq_key){
-#  spec<-unq_key[i,2]
-#  year<-unq_key[i,1]
-#  CPUE_spec<-CPUE_data[CPUE_data$Year==year&CPUE_data$Common_Name==spec,]
-###You would have to either change how your output is structured or how you put data into it
-###
-
 #
- #I don't think the double square brackets are necessary?
-for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66, but there aren't 66 species in the CPUE_year loop data
-    #suggest having it 1:length(unique$CPUE_year)
+for(i in 1:nrow(unq_key)){
   spec <- unq_key[i, 2]
   year <- unq_key[i, 1]
   row <- match(spec, unique(unq_key$Common_Name))
   col <- match(year, unique(unq_key$Year))
-  CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,] #this is going to look for things that aren't there because you are looking at the species list from the larger data set
-    #suggest: CPUE_spec<-CPUE_year[CPUE_year$Common_Name==unique(CPUE_year)[i],]
-    CPUE_spec <- na.omit(CPUE_spec)
-    if(nrow(CPUE_spec) == 0) { #if you adopt my suggested changes, this chunk isn't necessary.
-      Small[row, col] <- paste("No Samples")
-      Sample[row, col] <- 0
-      next}
-    jpeg(paste("IPHC_Data/Plots/", spec, year,".jpg", sep = "")) #I recommend doing these as .png, better across platforms
+  CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,]
+  png(paste("IPHC_Data/Plots/", spec, year,".png", sep = ""))
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(CPUE_spec$Primary_CPUE) + .001), ylim = 
@@ -325,16 +302,14 @@ for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66
     Sample[row, col] <- nrow(CPUE_spec)
     if(nrow(CPUE_spec) == 1) {
     Small[row, col] <- paste("Small Sample Size")
-    next} else {
+    next
+    } else {
     mymean <- function(Primary_CPUE, j) mean(Primary_CPUE[j])
     myboot <- with(CPUE_spec, boot(Primary_CPUE, mymean, R = 1000))
     if(sd(myboot$t) != 0){
     boot_conf <- boot.ci(myboot, type = "bca")
     conf_int[row, ,col] <- boot_conf$bca
     }
-    #Looks like need to add an "if" statement (similar to a few lines above) here for instances where there is no variance 
-    #e.g., 2014 Great Sculpin. In these cases, the confidence intervals would
-    #equal the mean value
     mymeans[row, col] <- myboot$t0
     mymean2 <- function(Secondary_CPUE, j) mean(Secondary_CPUE[j])
     myboot2 <- with(CPUE_spec, boot(Secondary_CPUE, mymean2, R = 1000))
@@ -377,49 +352,49 @@ for(i in 1:nrow(unq_key)){ #this is set up a little weird, you have i through 66
 # Format all of the results into various dataframes for output into an Word
 # table
 #
-colnames(Results) <- unique(CPUE_data$Year)
+colnames(Results) <- unique(unq_key$Year)
 #
-rownames(Results) <- unique(CPUE_data$Common_Name)
+rownames(Results) <- unique(unq_key$Common_Name)
 #
 Results <- melt(Results)
 #
 colnames(Results) <- c("Species", "Year", "p-value")
 #
-colnames(Small) <- unique(CPUE_data$Year)
+colnames(Small) <- unique(unq_key$Year)
 #
-rownames(Small) <- unique(CPUE_data$Common_Name)
+rownames(Small) <- unique(unq_key$Common_Name)
 #
 Small <- melt(Small)
 #
 colnames(Small) <- c("Species", "Year", "Warning")
 #
-colnames(Sample) <- unique(CPUE_data$Year)
+colnames(Sample) <- unique(unq_key$Year)
 #
-rownames(Sample) <- unique(CPUE_data$Common_Name)
+rownames(Sample) <- unique(unq_key$Common_Name)
 #
 Sample <- melt(Sample)
 #
 colnames(Sample) <- c("Species", "Year", "Sample Size")
 #
-colnames(Significant) <- unique(CPUE_data$Year)
+colnames(Significant) <- unique(unq_key$Year)
 #
-rownames(Significant) <- unique(CPUE_data$Common_Name)
+rownames(Significant) <- unique(unq_key$Common_Name)
 #
 Significant <- melt(Significant)
 #
 colnames(Significant) <- c("Species", "Year", "Significance")
 #
-colnames(mymeans) <- unique(CPUE_data$Year)
+colnames(mymeans) <- unique(unq_key$Year)
 #
-rownames(mymeans) <- unique(CPUE_data$Common_Name)
+rownames(mymeans) <- unique(unq_key$Common_Name)
 #
 mymeans <- melt(mymeans)
 #
 colnames(mymeans) <- c("Species", "Year", "Primary Mean CPUE")
 #
-colnames(mymeans2) <- unique(CPUE_data$Year)
+colnames(mymeans2) <- unique(unq_key$Year)
 #
-rownames(mymeans2) <- unique(CPUE_data$Common_Name)
+rownames(mymeans2) <- unique(unq_key$Common_Name)
 #
 mymeans2 <- melt(mymeans2)
 #
@@ -433,6 +408,8 @@ Small_Sample <- merge(Small, Sample, by = c("Species", "Year"), all = TRUE)
 Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"), 
     all = TRUE)
 #
+Results <- Results[!(is.na(Results$`p-value`)) | !(is.na(Results$Significance)) | !(is.na(Results$Warning)) | !(is.na(Results$`Sample Size`)), ]
+#
 Significant <- subset(Significant_Results, Significant == 
     "Different Means")
 #
@@ -440,9 +417,9 @@ if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Specie
 #
 conf_names <- colnames(summary(boot_conf$bca))
 #
-Common_Names <- unique(CPUE_data$Common_Name)
+Common_Names <- unique(unq_key$Common_Name)
 #
-year_names <- unique(CPUE_data$Year)
+year_names <- unique(unq_key$Year)
 #
 dimnames(conf_int)[[1]] <- as.character(unlist(Common_Names))
 #
@@ -985,7 +962,7 @@ for(i in unique(catch_data6$Common_Name)){
       }
       mymeans2[i] <- myboot2$t0
       model <- lm(formula = secCPUE ~ priCPUE, data = CPUE_spec)
-      jpeg(paste("NMFS_Data/Plots/QQof",i,".jpg", sep = ""))
+      png(paste("NMFS_Data/Plots/QQof",i,".png", sep = ""))
       layout(rbind(c(1,2), c(3,3)))
       qqnorm(CPUE_spec$priCPUE, ylim = c(-0.5,0.5), main = 
                "QQ-plot of Primary CPUE \n", i)
