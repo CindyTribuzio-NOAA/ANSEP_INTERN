@@ -11,307 +11,223 @@ bibliography: Format/library.bib
 ---
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
+#===============================================================
+#===============================================================
 # Danny Cooper
 # IPHC Data Analysis
-#
+
 # Source file to install/load necessary packages
-#
+
 source("Packages/packages.R")
-#
+
 # Import relevant files (hook census and hook data files)
-#
+
 catch_data <- read.csv("IPHC_Data/IPHC_hook_census.csv", na.strings = "", header = TRUE)
-#NOTE: changed all "." in names to "_" following Hadley style http://stat405.had.co.nz/r-style.html. 
-#I'm not good about following all his rules, I don't care about spaces for example.
-#Two reasons to use "_" instead of ".": 1) you can't use "." in SQL coding, and if you
-#do anything in a database, you'll end up using SQL; 2) it's easy to accidentally screw something
-#up by using ".", it tends to signifiy the end of something, like in file names "myname.jpg", so 
-#putting it in the middle of the file name can potentially mess up the file extensions
 
-#It is common to use "." in function names, but that is different from naming objects/variables.
+colnames(catch_data)[8] <- "cmnnme_1"
 
-#NOTE2: You don't need to have "#" for every empty line. Obviously there are some style preferences
-#but I prefer to leave blank lines between groups of code, and break up segments by
-#something like below (makes for easy visual scanning):
-#############################################
-################################################
-#or
-#================================================
-#===============================================
-#
 station_data <- read.csv("IPHC_Data/Hook_Data2.csv", na.strings = "", header = TRUE)
-#NOTE: changing the data changed how the for loop worked, see notes within the for loop.
-#I continued to work through the code using the original data.
-#
+
 # Reformat the values of the second species number to 0's
-#
+
 catch_data$secspcno[catch_data$secspcno == "NULL"] <- NA
-#
+
 catch_data$secspcno <- as.numeric(catch_data$secspcno)
-#
+
 catch_data$secspcno[is.na(catch_data$secspcno)] <- 0
-#
+
 # Calculate the percent of secondary catch relative to primary catch and 
 # number of hooks
-
 
 catch_amount <- catch_data[catch_data$cmnnme != "Inanimate Object" & 
     catch_data$cmnnme != "Missing Hook/Gangion" & catch_data$cmnnme != 
     "Hook with Skin" & catch_data$cmnnme != "Hook with Bait" & catch_data$cmnnme 
     != "Empty Hook" & catch_data$cmnnme != "Bent Hook" & catch_data$cmnnme != 
     "Bent/Broken/Missing" & catch_data$cmnnme != "unident. organic matter",]
-#
+
 catch_percent <- (nrow(catch_amount[catch_amount$secspcno != 0, ]) / 
     nrow(catch_amount)) * 100 #gives the % of hooks with catch that had more than one fish
-#
+
 all_percent <- (nrow(catch_data[catch_data$secspcno != 0, ]) / 
     nrow(catch_data)) * 100 #gives the % of all hooks with more than one fish/item
-#
+
 sec_percent <- cbind(all_percent, catch_percent)
-#
-colnames(sec_percent) <- c("multi_All_Hooks", "multi_catch_Hooks") #new names are shorter and consistent with your conventions
-#
+
+colnames(sec_percent) <- c("multi_All_Hooks", "multi_catch_Hooks") 
+
 # Subset the hook data file to contain only desired columns and rename them
-#
-hook_data <- subset(station_data, select = c("yr", "station", "hksretriev", 
-    "hksobs", "ineffhks"))
-#
-colnames(hook_data) <- c("Year", "Station", "hksretriev", "hksobs", 
-    "ineffhks")
-#
+
+hook_data <- subset(station_data, select = c("yr", "station", "hksretriev", "hksobs", "ineffhks"))
+
+colnames(hook_data) <- c("Year", "Station", "hksretriev", "hksobs", "ineffhks")
+
 # Insert new column into the hook data for the total number of ineffective 
 # hooks
-#
-hook_data$totineffhks <- hook_data$ineffhks / hook_data$hksobs * 
-    hook_data$hksretriev
-#
+
+hook_data$totineffhks <- hook_data$ineffhks / hook_data$hksobs * hook_data$hksretriev
+
 # Split the dates into separate columns to create a column for the year
-#
-catch_data$yr <- lapply(strsplit(as.character(catch_data$Date), "\\/"), "[", 
-    3)
-#
+
+catch_data$yr <- lapply(strsplit(as.character(catch_data$Date), "\\/"), "[", 3)
+
 catch_data$yr <- as.numeric(catch_data$yr)
-#
+
 # Insert a catch row to be summed for each species later
-#
+
 catch_data$Catch <- rep(1, nrow(catch_data))
-#
+
 # Insert the primary catch data into any row containing a 0 in secondary 
 # catch and do the same for the common name
-#
+
 catch_data$secspcno <- ifelse(catch_data$secspcno == 0, catch_data$prispcno, 
     catch_data$secspcno)
-#
+
 catch_data$cmnnme <- as.character(catch_data$cmnnme)
-#
-catch_data$cmnnme.1 <- as.character(catch_data$cmnnme.1)
-#
-catch_data[catch_data$cmnnme.1 == "NULL", "cmnnme.1"]  <- 
-    catch_data[catch_data$cmnnme.1 == "NULL", "cmnnme"]
-#
+
+catch_data$cmnnme_1 <- as.character(catch_data$cmnnme_1)
+
+catch_data[catch_data$cmnnme_1 == "NULL", "cmnnme_1"]  <- catch_data[catch_data$cmnnme_1 == "NULL", "cmnnme"]
+
 # Select the relevant data from this new dataset to divide the primary and
 # secondary catches and sum each of the columns to calculate the catch for 
 # each species by station and year
-#
+
 pri_data <- subset(catch_data, select = c("Station", "yr", "cmnnme", "Catch"))
-#
+
 pri_catch <- ddply(pri_data, c("Station", "yr", "cmnnme"), 
     numcolwise(sum))
-#
-sec_data <- subset(catch_data, select = c("Station", "yr", "cmnnme.1", 
+
+sec_data <- subset(catch_data, select = c("Station", "yr", "cmnnme_1", 
     "Catch"))
-#
-sec_catch <- ddply(sec_data, c("Station", "yr", "cmnnme.1"), 
+
+sec_catch <- ddply(sec_data, c("Station", "yr", "cmnnme_1"), 
     numcolwise(sum))
-#
+
 # Combine these datasets to give the primary and secondary catch for each
 # species by station and year; set any remaining missing values to 0; rename
 # each column
-#
+
 catch_all <- merge(pri_catch, sec_catch, by.x = c("Station", "yr", "cmnnme"),
-    by.y = c("Station", "yr", "cmnnme.1"), all = TRUE)
-#
+    by.y = c("Station", "yr", "cmnnme_1"), all = TRUE)
+
 catch_all[is.na(catch_all)] <- 0
-#
+
 colnames(catch_all) <- c("Station", "Year", "Common_Name", "Primary_Catch", 
     "Secondary_Catch")
-#
+
 # Combine this dataset with the hook data by station and year to provide
 # the catch and number of ineffective hooks for each station and year
-#
+
 catch_hook <- merge(catch_all, hook_data, by = c("Station", "Year"), 
     all.x = T) 
-# I added the below two lines to look at how many stations were missing data,
-# which is how I realized the hook_data were incomplete.
-misdat<-catch_hook[!complete.cases(catch_hook),] #pulls all rows missing station data
-misout<-unique(misdat[,1:2]) #identifies unique year/station combos, only 69 now with updated hook_data
-#
+
 # Extrapolate the amount of catch to the entire line of hooks and calculate
 # the CPUE
-#
-catch_hook$Est_Primary_Catch <- catch_hook$hksretriev / catch_hook$hksobs * 
-    catch_hook$Primary_Catch
-#
-catch_hook$Est_Secondary_Catch <- catch_hook$hksretriev / catch_hook$hksobs * 
-    catch_hook$Secondary_Catch
-#
-catch_hook$Primary_CPUE <- catch_hook$Est_Primary_Catch / 
-    (catch_hook$hksretriev - catch_hook$totineffhks)
-#
-catch_hook$Secondary_CPUE <- catch_hook$Est_Secondary_Catch / 
-    (catch_hook$hksretriev - catch_hook$totineffhks)
-#
-# Select the desired data from this dataset (CPUE, station, year, and species)
-#
-CPUE_data <- subset(catch_hook, select = c("Station", "Year", "Common_Name", 
-    "Primary_CPUE", "Secondary_CPUE")) 
-# the subset function can be a bit dodgy, it works here, but you have to be careful (same for merge()).
-# a more stable way of doing the above two lines would be
-# CPUE_data<-catch_hook[,c("Station", "Year", "Common_Name", "Primary_CPUE", "Secondary_CPUE")]
-#
-# Remove NA's and NULL values from the dataset
-#
-CPUE_data[CPUE_data == "NULL"] <- NA
-#
-CPUE_data <- na.omit(CPUE_data)
-#The above two lines can be done with:
-#CPUE_data<-CPUE_data[complete.cases(CPUE_data),]
-#
-# Remove categories not of interest and combine other categories together
-#
-CPUE_data <- subset(CPUE_data, CPUE_data[, 3,] != "Inanimate Object" & #what does the extra comma do? That's a new one to me
-    CPUE_data[, 3,] != "Missing Hook/Gangion" & CPUE_data[, 3,] != 
-    "Hook with Skin" & CPUE_data[, 3,] != "Hook with Bait" & CPUE_data[, 3,] 
-    != "Empty Hook" & CPUE_data[, 3,] != "Bent Hook" & CPUE_data[, 3,] != 
-    "Bent/Broken/Missing" & CPUE_data[, 3,] != "unident. organic matter" & 
-    CPUE_data[, 3,] != "Unknown/Unspecified")
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. thornyhead (Idiot)"
-    ] <- "Thornyhead"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Shortspine Thornyhead"] <- 
-    "Thornyhead"
 
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Sunflower Sea Star"] <- 
-    "Starfish"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Starfish"] <-
-    "Starfish"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Coral"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Sponge"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Anemone"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Gastropod"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Red Tree Coral"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Barnacles"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Cucumber"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Crab"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Brown King Crab"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Tanner Crab"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Box Crab"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Red King Crab"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Whip"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Urchin"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Shells"] <- 
-    "Benthic Invertebrates"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Rougheye/Shortraker"] <- 
-    "Rougheye Shortraker"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == 
-    "Greenland/Kamchatka/Arrowtooth"] <- "Greenland Kamchatka Arrowtooth"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Kamchatka/Arrowtooth"] <- 
-    "Kamchatka Arrowtooth"
-#
-CPUE_data$Common_Name[CPUE_data$Common_Name == "Bering/Alaska Skate"] <- 
-    "Bering Alaska Skate"
-#
+catch_hook$Est_Primary_Catch <- catch_hook$hksretriev / catch_hook$hksobs * catch_hook$Primary_Catch
+
+catch_hook$Est_Secondary_Catch <- catch_hook$hksretriev / catch_hook$hksobs * catch_hook$Secondary_Catch
+
+catch_hook$Primary_CPUE <- catch_hook$Est_Primary_Catch / (catch_hook$hksretriev - catch_hook$totineffhks)
+
+catch_hook$Secondary_CPUE <- catch_hook$Est_Secondary_Catch / (catch_hook$hksretriev - catch_hook$totineffhks)
+
+# Select the desired data from this dataset (CPUE, station, year, and species)
+
+CPUE_data <- catch_hook[, c("Station", "Year", "Common_Name", "Primary_CPUE", "Secondary_CPUE")] 
+
+# Remove NA's and NULL values from the dataset
+
+CPUE_data <- CPUE_data[complete.cases(CPUE_data), ]
+
+# Remove categories not of interest and combine other categories together
+
+CPUE_data <- subset(CPUE_data, CPUE_data[, 3] != "Inanimate Object" & CPUE_data[, 3] != "Missing Hook/Gangion" & CPUE_data[, 3] != "Hook with Skin" & CPUE_data[, 3] != "Hook with Bait" & CPUE_data[, 3] != "Empty Hook" & CPUE_data[, 3] != "Bent Hook" & CPUE_data[, 3] != "Bent/Broken/Missing" & CPUE_data[, 3] != "unident. organic matter" & CPUE_data[, 3] != "Unknown/Unspecified")
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. thornyhead (Idiot)"] <- "Thornyhead"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Shortspine Thornyhead"] <- "Thornyhead"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Sunflower Sea Star"] <- "Starfish"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Starfish"] <- "Starfish"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Coral"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Sponge"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Anemone"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Gastropod"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Red Tree Coral"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Barnacles"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Cucumber"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "unident. Crab"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Brown King Crab"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Tanner Crab"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Box Crab"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Red King Crab"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Whip"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Sea Urchin"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Shells"] <- "Benthic Invertebrates"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Rougheye/Shortraker"] <- "Rougheye Shortraker"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Greenland/Kamchatka/Arrowtooth"] <- "Greenland Kamchatka Arrowtooth"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Kamchatka/Arrowtooth"] <- "Kamchatka Arrowtooth"
+
+CPUE_data$Common_Name[CPUE_data$Common_Name == "Bering/Alaska Skate"] <- "Bering Alaska Skate"
+
 # Prepare any objects for use inside the for-loop
-#
-Y <- 11 #what values does this represent? Suggest not hard coding this value
-#Y<-length(unique(CPUE_data$Year))   #Is this correct?
-#
-I <- 66 #same comment
-#I<- length(unique(CPUE_data$Common_Name))
-#
+
+unq_key <- unique(CPUE_data[,c("Year", "Common_Name")])
+
+Y <- length(unique(unq_key$Year))
+
+I <- length(unique(unq_key$Common_Name))
+
 Results <- matrix(ncol = Y, nrow = I)
-#
+
 Small <- matrix(ncol = Y, nrow = I)
-#
+
 Significant <- matrix(ncol = Y, nrow = I)
-#
+
 Sample <- matrix(ncol = Y, nrow = I)
-#
+
 Test <- matrix(ncol = Y, nrow = I)
-#
+
 mymeans <- matrix(ncol = Y, nrow = I)
-#
+
 mymeans2 <- matrix(ncol = Y, nrow = I)
-#
+
 CPUE_rank <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
-#
+
 conf_int <- array(dim = c(I,5,Y))
-#
+
 conf_int2 <- array(dim = c(I,5,Y))
-#
+
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
 
-##NOTE: you could make this a single for loop by doing the following:
-##unq_key<-unique(CPUE_data[,c("Year","Common_Name")])
-#Then loop through the rows of the unq_key starting with the lines below:
-#for(i in 1:nrow(unq_key){
-#  spec<-unq_key[i,2]
-#  year<-unq_key[i,1]
-#  CPUE_spec<-CPUE_data[CPUE_data$Year==year&CPUE_data$Common_Name==spec,]
-###You would have to either change how your output is structured or how you put data into it
-###
-
-#
-for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data changes, same for I
-  CPUE_year <- subset(CPUE_data, CPUE_data$Year == unique(CPUE_data$Year)[[y]]) #I don't think the double square brackets are necessary?
-  for(i in 1:I){ #this is set up a little weird, you have i through 66, but there aren't 66 species in the CPUE_year loop data
-    #suggest having it 1:length(unique$CPUE_year)
-    CPUE_spec <- subset(CPUE_year, CPUE_year$Common_Name == unique(CPUE_data$Common_Name)[[i]]) #this is going to look for things that aren't there because you are looking at the species list from the larger data set
-    #suggest: CPUE_spec<-CPUE_year[CPUE_year$Common_Name==unique(CPUE_year)[i],]
-    CPUE_spec <- na.omit(CPUE_spec)
-    spec <- unique(CPUE_data$Common_Name)[[i]]
-    year <- unique(CPUE_data$Year)[[y]]
-    if(nrow(CPUE_spec) == 0) { #if you adopt my suggested changes, this chunk isn't necessary.
-      Small[i,y] <- paste("No Samples")
-      Sample[i,y] <- 0
-      next}
-    jpeg(paste("IPHC_Data/Plots/", spec, year,".jpg", sep = "")) #I recommend doing these as .png, better across platforms
+for(i in 1:nrow(unq_key)){
+  spec <- unq_key[i, 2]
+  year <- unq_key[i, 1]
+  row <- match(spec, unique(unq_key$Common_Name))
+  col <- match(year, unique(unq_key$Year))
+  CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,]
+  png(paste("IPHC_Data/Plots/", spec, year,".png", sep = ""))
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(CPUE_spec$Primary_CPUE) + .001), ylim = 
@@ -319,37 +235,40 @@ for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data chang
         paste("Plot of", spec,year))
     abline(a = 0, b = 1, lty = 3)
     dev.off()
-    Sample[i,y] <- nrow(CPUE_spec)
+    Sample[row, col] <- nrow(CPUE_spec)
     if(nrow(CPUE_spec) == 1) {
-    Small[i,y] <- paste("Small Sample Size")
-    next} else {
+    Small[row, col] <- paste("Small Sample Size")
+    next
+    } else {
     mymean <- function(Primary_CPUE, j) mean(Primary_CPUE[j])
     myboot <- with(CPUE_spec, boot(Primary_CPUE, mymean, R = 1000))
-    #Looks like need to add an "if" statement (similar to a few lines above) here for instances where there is no variance 
-    #e.g., 2014 Great Sculpin. In these cases, the confidence intervals would
-    #equal the mean value
+    if(sd(myboot$t) != 0){
     boot_conf <- boot.ci(myboot, type = "bca")
-    conf_int[i, ,y] <- boot_conf$bca
-    mymeans[i,y] <- myboot$t0
+    conf_int[row, ,col] <- boot_conf$bca
+    }
+    mymeans[row, col] <- myboot$t0
     mymean2 <- function(Secondary_CPUE, j) mean(Secondary_CPUE[j])
     myboot2 <- with(CPUE_spec, boot(Secondary_CPUE, mymean2, R = 1000))
+    if(sd(myboot2$t) != 0){
     boot_conf2 <- boot.ci(myboot2, type = "bca")
-    conf_int2[i, ,y] <- boot_conf2$bca
-    mymeans2[i,y] <- myboot2$t0
+    conf_int2[row, ,col] <- boot_conf2$bca
+    }
+    mymeans2[row, col] <- myboot2$t0
     model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = CPUE_spec)
     jpeg(paste("IPHC_Data/Plots/QQof",spec,year,".jpg", sep = ""))
     layout(rbind(c(1,2), c(3,3)))
     qqnorm(CPUE_spec$Primary_CPUE, ylim = c(-0.5,0.5), main = 
-        "QQ-plot of Primary CPUE \n", i,y)
+        "QQ-plot of Primary CPUE \n", row, col)
     qqline(CPUE_spec$Primary_CPUE, lty = 3)
     qqnorm(CPUE_spec$Secondary_CPUE, ylim = c(-0.5,0.5), main = 
-        "QQ-plot of Secondary CPUE \n", i,y)
+        "QQ-plot of Secondary CPUE \n", row, col)
     qqline(CPUE_spec$Secondary_CPUE, lty = 3)
     qqnorm(residuals(model), ylim = c(-0.5,0.5),
         main = "QQ-plot of Residuals obtained from \nSimple Regression",
-        "Model \n", i,y)
+        "Model \n", row, col)
     qqline(residuals(model), lty = 3)
     dev.off()
+    if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
     CPUE_rank <- melt(CPUE_spec, id.vars = c("Station", "Year", 
         "Common_Name"))
     colnames(CPUE_rank) <- c("Station", "Year", "Common_Name", "Type", "CPUE")
@@ -359,143 +278,143 @@ for(y in 1:Y){ #I changed the 11 to Y so the code is more flexible to data chang
     result <- with(CPUE_rank, t.test(Primary_CPUE, Secondary_CPUE, var.equal =
     FALSE))
     if (result$p.value < 0.05) {
-    Significant[i,y] <- paste("Different Means")
+    Significant[row, col] <- paste("Different Means")
         } else {
-        Significant[i,y] <- paste("Similar Means")}
-    Results[i,y] <- result$p.value
-}}}
-#
+        Significant[row, col] <- paste("Similar Means")}
+    Results[row, col] <- result$p.value
+    }
+}}
+
 # Format all of the results into various dataframes for output into an Word
 # table
-#
-colnames(Results) <- unique(CPUE_data$Year)
-#
-rownames(Results) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(Results) <- unique(unq_key$Year)
+
+rownames(Results) <- unique(unq_key$Common_Name)
+
 Results <- melt(Results)
-#
+
 colnames(Results) <- c("Species", "Year", "p-value")
-#
-colnames(Small) <- unique(CPUE_data$Year)
-#
-rownames(Small) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(Small) <- unique(unq_key$Year)
+
+rownames(Small) <- unique(unq_key$Common_Name)
+
 Small <- melt(Small)
-#
+
 colnames(Small) <- c("Species", "Year", "Warning")
-#
-colnames(Sample) <- unique(CPUE_data$Year)
-#
-rownames(Sample) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(Sample) <- unique(unq_key$Year)
+
+rownames(Sample) <- unique(unq_key$Common_Name)
+
 Sample <- melt(Sample)
-#
+
 colnames(Sample) <- c("Species", "Year", "Sample Size")
-#
-colnames(Significant) <- unique(CPUE_data$Year)
-#
-rownames(Significant) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(Significant) <- unique(unq_key$Year)
+
+rownames(Significant) <- unique(unq_key$Common_Name)
+
 Significant <- melt(Significant)
-#
+
 colnames(Significant) <- c("Species", "Year", "Significance")
-#
-colnames(mymeans) <- unique(CPUE_data$Year)
-#
-rownames(mymeans) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(mymeans) <- unique(unq_key$Year)
+
+rownames(mymeans) <- unique(unq_key$Common_Name)
+
 mymeans <- melt(mymeans)
-#
+
 colnames(mymeans) <- c("Species", "Year", "Primary Mean CPUE")
-#
-colnames(mymeans2) <- unique(CPUE_data$Year)
-#
-rownames(mymeans2) <- unique(CPUE_data$Common_Name)
-#
+
+colnames(mymeans2) <- unique(unq_key$Year)
+
+rownames(mymeans2) <- unique(unq_key$Common_Name)
+
 mymeans2 <- melt(mymeans2)
-#
+
 colnames(mymeans2) <- c("Species", "Year", "Secondary Mean CPUE")
-#
-Significant_Results <- merge(Results, Significant, by = c("Species", "Year"), all = 
-    TRUE)
-#
+
+Significant_Results <- merge(Results, Significant, by = c("Species", "Year"), all = TRUE)
+
 Small_Sample <- merge(Small, Sample, by = c("Species", "Year"), all = TRUE)
-#
-Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"), 
-    all = TRUE)
-#
-Significant <- subset(Significant_Results, Significant == 
-    "Different Means")
-#
-if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Species", "Year","p value"))}
-#
-conf_names <- colnames(summary(boot.conf$bca))
-#
-Common_Names <- unique(CPUE_data$Common_Name)
-#
-year_names <- unique(CPUE_data$Year)
-#
+
+Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"), all = TRUE)
+
+Results <- Results[!(is.na(Results$`p-value`)) | !(is.na(Results$Significance)) | !(is.na(Results$Warning)) | !(is.na(Results$`Sample Size`)), ]
+
+Significant <- subset(Significant_Results, Significant == "Different Means")
+
+if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Species", "Year", "p-value"))}
+
+conf_names <- colnames(summary(boot_conf$bca))
+
+Common_Names <- unique(unq_key$Common_Name)
+
+year_names <- unique(unq_key$Year)
+
 dimnames(conf_int)[[1]] <- as.character(unlist(Common_Names))
-#
+
 dimnames(conf_int)[[2]] <- as.character(unlist(conf_names))
-#
+
 dimnames(conf_int)[[3]] <- as.character(unlist(year_names))
-#
+
 conf_int <- as.data.frame(as.table(conf_int))
-#
+
 conf_int <- cast(conf_int, Var1 + Var3 ~ Var2, value = "Freq")
-#
+
 conf_int <- conf_int[c(1, 2, 6, 7)]
-#
+
 colnames(conf_int) <- c("Species", "Year", "Primary Lower CPUE", "Primary Upper CPUE")
-#
+
 dimnames(conf_int2)[[1]] <- as.character(unlist(Common_Names))
-#
+
 dimnames(conf_int2)[[2]] <- as.character(unlist(conf_names))
-#
+
 dimnames(conf_int2)[[3]] <- as.character(unlist(year_names))
-#
+
 conf_int2 <- as.data.frame(as.table(conf_int2))
-#
+
 conf_int2 <- cast(conf_int2, Var1 + Var3 ~ Var2, value = "Freq")
-#
+
 conf_int2 <- conf_int2[c(1, 2, 6, 7)]
-#
+
 colnames(conf_int2) <- c("Species", "Year", "Secondary Lower CPUE", "Secondary Upper CPUE")
-#
+
 conf_int_all <- merge(conf_int, conf_int2, by = c("Species", "Year"), all = TRUE)
-#
+
 means <- merge(mymeans, mymeans2, by = c("Species", "Year"), all = TRUE)
-#
+
 conf_int_all <- merge(conf_int_all, means, by = c("Species", "Year"), all = TRUE)
-#
+
 conf_int_all <- na.omit(conf_int_all)
-#
+
 conf_int_all$`Primary Mean CPUE` <- round(conf_int_all$`Primary Mean CPUE`, 3)
-#
+
 conf_int_all$`Primary Lower CPUE` <- round(conf_int_all$`Primary Lower CPUE`, 3)
-#
+
 conf_int_all$`Primary Upper CPUE` <- round(conf_int_all$`Primary Upper CPUE`, 3)
-#
+
 conf_int_all$`Secondary Mean CPUE` <- round(conf_int_all$`Secondary Mean CPUE`, 3)
-#
+
 conf_int_all$`Secondary Lower CPUE` <- round(conf_int_all$`Secondary Lower CPUE`, 3)
-#
+
 conf_int_all$`Secondary Upper CPUE` <- round(conf_int_all$`Secondary Upper CPUE`, 3)
-#
+
 conf_int_all$`Primary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all$`Primary Mean CPUE`, " (", conf_int_all$`Primary Lower CPUE`, ", ", conf_int_all$`Primary Upper CPUE`, ")", sep = "")
-#
+
 conf_int_all$`Secondary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all$`Secondary Mean CPUE`, " (", conf_int_all$`Secondary Lower CPUE`, ", ", conf_int_all$`Secondary Upper CPUE`, ")", sep = "")
-#
+
 conf_int_all <- subset(conf_int_all, select = c("Species", "Year", "Primary Mean CPUE (Lower Bound, Upper Bound)", "Secondary Mean CPUE (Lower Bound, Upper Bound)"))
-#
+
 # Calculate the bootstrapped difference-of-means confidence intervals for
 # each species and year
-#
+
 boot_data <- melt(CPUE_data, id.vars = c("Station", "Year", "Common_Name"))
-#
+
 colnames(boot_data) <- c("Station", "Year", "Common_Name", "Type", "CPUE")
-#
+
 diff.means <- function(d, f)
 {    n <- nrow(d)
      tp1 <- 1:table(as.numeric(d$Type))[1]
@@ -505,71 +424,81 @@ diff.means <- function(d, f)
      ss2 <- sum(d[-tp1, 5]^2 * f[-tp1]) - (m2 * m2 * sum(f[-tp1]))
      c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
 }
-#
+
+unq_key <- unique(boot_data[,c("Year", "Common_Name")])
+
+I <- length(unique(boot_data$Common_Name))
+
+Y <- length(unique(boot_data$Year))
+
 boot_result <- array(dim = c(I, 5, Y))
-#
+
 mean <- matrix(ncol = Y, nrow = I)
-#
-for(y in 1:11){
-  boot_year <- subset(boot_data, boot_data$Year == unique(boot_data$Year)[[y]])
-  for(i in 1:66){
-    boot_spec <- subset(boot_year, boot_year$Common_Name == unique(boot_data$Common_Name)[[i]])
-    boot_spec <- na.omit(boot_spec)
-    spec <- unique(boot_data$Common_Name)[[i]]
-    year <- unique(boot_data$Year)[[y]]
-    if (nrow(boot_spec) < 3) {next}
-    type_boot <- boot(boot_spec, diff.means, R = 1000, strata = 
-        boot_spec[ ,5])
-    boot_test <- boot.ci(type_boot, type = "perc")
-    boot_result[i, , y] <- boot_test$perc
-    mean[i, y] <- type_boot$t0[[1]]
-}}
-#
+
+for(i in 1:nrow(unq_key)){
+  spec <- unq_key[i, 2]
+  year <- unq_key[i, 1]
+  row <- match(spec, unique(unq_key$Common_Name))
+  col <- match(year, unique(unq_key$Year))
+  boot_spec <- boot_data[boot_data$Year == year & boot_data$Common_Name == spec,]
+  boot_spec <- na.omit(boot_spec)
+  if (nrow(boot_spec) < 3) {next}
+  type_boot <- boot(boot_spec, diff.means, R = 1000, strata = 
+      boot_spec[ ,5])
+  if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
+  boot_test <- boot.ci(type_boot, type = "perc")
+  boot_result[row, , col] <- boot_test$perc
+  }
+  mean[row, col] <- type_boot$t0[1]
+}
+
 # Format these results as a dataframe for output to Word
-#
+
 conf_name <- colnames(summary(boot_test$percent))
-#
+
 Common_Name <- unique(boot_data$Common_Name)
-#
+
 year_name <- unique(boot_data$Year)
-#
+
 dimnames(boot_result)[[1]] <- as.character(unlist(Common_Name))
-#
+
 dimnames(boot_result)[[2]] <- as.character(unlist(conf_name))
-#
+
 dimnames(boot_result)[[3]] <- as.character(unlist(year_name))
-#
+
 boot_result <- as.data.frame(as.table(boot_result))
-#
+
 boot_result <- cast(boot_result, Var1 + Var3 ~ Var2, value = "Freq")
-#
+
 boot_result <- boot_result[c(1, 2, 6, 7)]
-#
+
 colnames(boot_result) <- c("Species", "Year", "Lower Bound", "Upper Bound")
-#
+
 colnames(mean) <- unique(CPUE_data$Year)
-#
+
 rownames(mean) <- unique(CPUE_data$Common_Name)
-#
+
 mean <- melt(mean)
-#
+
 colnames(mean) <- c("Species", "Year", "Mean Difference")
-#
+
 mean <- na.omit(mean)
-#
+
 boot_result <- na.omit(boot_result)
-#
+
 boot_result <- merge(mean, boot_result, by = c("Species", "Year"), all = TRUE)
-#
+
 boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
-#
+
 boot_result$`Lower Bound` <- signif(boot_result$`Lower Bound`, 2)
-#
+
 boot_result$`Upper Bound` <- signif(boot_result$`Upper Bound`, 2)
-#
+
 boot_result$`Mean Difference (Lower Bound, Upper Bound)` <- paste(boot_result$`Mean Difference`, " (", boot_result$`Lower Bound`, ", ", boot_result$`Upper Bound`, ")", sep = "")
-#
+
 boot_result <- subset(boot_result, select = c("Species", "Year", "Mean Difference (Lower Bound, Upper Bound)"))
+#===============================================================
+#===============================================================
 ```
 Keywords: catch-per-unit-effort, CPUE, longlining, bootstrapping, t test, Welch's test
 
@@ -607,23 +536,23 @@ The NMFS survey results were very similar to the IPHC survey results. The Octopu
 <br>
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 library(knitr, quietly = TRUE)
-#
+
 # Change the first NA value in each column for defining later
-#
+
 Results$`p-value`[match(NA, Results$`p-value`)] <- "-*"
-#
+
 Results$Significance <- as.character(Results$Significance)
-#
+
 Results$Significance[match(NA, Results$Significance)] <- "-*"
-#
+
 Results$Warning <- as.character(Results$Warning)
-#
+
 Results$Warning[match(NA, Results$Warning)] <- "-**"
-#
+
 # Set all other NA values to '-' and create table of results
-#
+
 options(knitr.kable.NA = '-')
-#
+
 kable(Results, caption = "Table 1 IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
 
@@ -633,437 +562,446 @@ kable(Results, caption = "Table 1 IPHC. All of the species analyzed in the study
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
-#
+
 # Create a table of the BCa confidence intervals
-#
+
 kable(conf_int_all, caption = "Table 2 IPHC. Bootstrapped 95% bias-corrected confidence intervals for each species by year on the Primary and Secondary CPUE.  Means are included to see the direction of bias in the samples.", digits = 4, row.names = FALSE)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
-#
+
 # Create a table of difference-of-means confidence intervals
-#
+
 kable(boot_result, caption = "Table 3 IPHC. Bootstrapped 95% percentile confidence intervals of the difference of means between the Primary and Secondary CPUE for each species by year.  The means are included.", row.names = FALSE)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Figure 1 IPHC. Scatterplots of Pacific Cod, Lingcod, Octopus, and Darkblotched Rockfish with a reference line [slope = 1, intercept = 0]. Note the minor variation from the reference line in the Lingcod versus the perfect alignment on the Pacific Cod.  Also, note the low sample sizes of the Darkblotched Rockfish and Octopus. These species were chosen as a representation of the overall variation in the dataset.", fig.height = 6.5, fig.width = 6.5}
-#
+
 # Store data for representative species and year
-#
+
 dark_fish <- CPUE_data[CPUE_data$Common_Name == "Darkblotched Rkfish" & CPUE_data$Year == "2008",]
-#
+
 pac_cod <- CPUE_data[CPUE_data$Common_Name == "Pacific Cod" & CPUE_data$Year == "2004",]
-#
+
 lin_cod <- CPUE_data[CPUE_data$Common_Name == "Lingcod" & CPUE_data$Year == "2008",]
-#
+
 oct_pus <- CPUE_data[CPUE_data$Common_Name == "Octopus" & CPUE_data$Year == "2008",]
-#
+
 # Output plots of species into a single figure with reference lines
-#
+
 par(mfrow = c(2, 2))
-#
+
 with(pac_cod, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
         paste("Plot of Pacific Cod 2004")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
+
 with(lin_cod, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
         paste("Plot of Lingcod 2008")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
+
 with(oct_pus, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
         paste("Plot of Octopus 2008")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
+
 with(dark_fish, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
         paste("Plot of Darblotched Rockfish 2008")))
-#
+
 abline(a = 0, b = 1, lty = 3)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Figure 2 IPHC.  QQ-plots demonstrating the non-normality of the data for Pacific Cod (left 3 plots) and Lingcod (right 3 plots).  There is a greater deviation in the Pacific Cod than the Lingcod plots. These species were chosen to demonstrate the variation in the dataset", fig.height = 5, fig.width = 6.5}
-#
+
 # Create a linear model of the representative species CPUE's
-#
+
 model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = pac_cod)
-#
+
 model2 <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = lin_cod)
-#
+
 # Output QQ-plots of species in a single figure with reference lines
-#
+
 layout(mat = matrix(c(1,2,4,5,3,3,6,6), nrow = 2, ncol = 4, byrow = TRUE))
-#
+
 with(pac_cod, qqnorm(Primary_CPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nPacific Cod 2004"))
-#
+
 with(pac_cod, qqline(Primary_CPUE, lty = 3))
-#
+
 with(pac_cod, qqnorm(Secondary_CPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nPacific Cod 2004"))
-#
+
 with(pac_cod, qqline(Secondary_CPUE, lty = 3))
-#
+
 with(pac_cod, qqnorm(residuals(model), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nPacific Cod 2004"))
-#
+
 with(pac_cod, qqline(residuals(model), lty = 3))
-#
+
 with(lin_cod, qqnorm(Primary_CPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nLingcod 2008"))
-#
+
 with(lin_cod, qqline(Primary_CPUE, lty = 3))
-#
+
 with(lin_cod, qqnorm(Secondary_CPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nLingcod 2008"))
-#
+
 with(lin_cod, qqline(Secondary_CPUE, lty = 3))
-#
+
 with(lin_cod, qqnorm(residuals(model2), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nLingcod 2008"))
-#
+
 with(lin_cod, qqline(residuals(model2), lty = 3))
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
-#
+
 #===============================================================
 #===============================================================
 # NMFS Analysis
-#
+
 # Load relevant Excel files
-#
+
 catch_data <- read.csv("NMFS_Data/ABL_2014_multi.csv", na.strings = "", header = TRUE)
-#
+
 catch_codes <- read.csv("NMFS_Data/Species_Catch_Codes.csv", na.strings = "", header = 
     TRUE)
-#
+
+names(catch_codes)[3:6] <- c("Polycorder_Number", "Species_Code", "Common_Name", "Scientific_Name")
+
 catch_full <- read.csv("NMFS_Data/ABL_2014_full.csv", na.strings = "", header = TRUE)
-#
+
+names(catch_full)[c(6, 44, 45, 51)] <- c("Station_Number", "Species_Code", "Common_Name", "Ineffective_Hooks")
+
 # Combine the multi dataset and catch codes to convert the polycorder numbers to species codes
 # for Primary and Secondary catch
-#
+
 catch_data <- merge(catch_data, catch_codes, by.x = "Primary", by.y = 
-    "Polycorder.Number", all.x = TRUE)
-#
-catch_data <- subset(catch_data, select = c("Station", "Species.Code", 
+    "Polycorder_Number", all.x = TRUE)
+
+catch_data <- subset(catch_data, select = c("Station", "Species_Code", 
     "Secondary"))
-#
-colnames(catch_data)[colnames(catch_data) == "Species.Code"] <- "Primary"
-#
+
+colnames(catch_data)[colnames(catch_data) == "Species_Code"] <- "Primary"
+
 catch_data <- merge(catch_data, catch_codes, by.x = "Secondary", by.y = 
-    "Polycorder.Number", all.x = TRUE)
-#
+    "Polycorder_Number", all.x = TRUE)
+
 catch_data <- subset(catch_data, select = c("Station", "Primary", 
-    "Species.Code"))
-#
-colnames(catch_data)[colnames(catch_data) == "Species.Code"] <- 
+    "Species_Code"))
+
+colnames(catch_data)[colnames(catch_data) == "Species_Code"] <- 
     "Secondary"
-#
+
 # Obtain unique list of species from the Primary and Secondary catch
-#
+
 speclist <- unique(c(catch_data$Primary, catch_data$Secondary))
-#
+
 # Extract all data for each species in the species list from the full dataset
-#
-species.data <- catch_full[(catch_full$Species.Code%in%speclist), 
-    c("Station.Number", "Species.Code", "Common_Name", "Catch", "Hachi", 
-    "Ineffective.Hooks")]
-#
+
+species_data <- catch_full[(catch_full$Species_Code%in%speclist), 
+    c("Station_Number", "Species_Code", "Common_Name", "Catch", "Hachi", 
+    "Ineffective_Hooks")]
+
 # Obtain the maximum number of Hachi from each station
-#
-station <- as.data.frame(with(species.data, tapply(Hachi, list(Station.Number), max)))
-#
+
+station <- as.data.frame(with(species_data, tapply(Hachi, list(Station_Number), max)))
+
 station$number <- as.numeric(rownames(station))
-#
+
 rownames(station)<-NULL
-#
+
 colnames(station) <- c("maxHachi", "Station")
-#
+
 # Obtain the total number of hooks from each station
-#
+
 station$tothks <- station$maxHachi*45
-#
+
 # Obtain the number of ineffective hooks from each station and add to station data
-#
-hachks <- as.data.frame(with(species.data, tapply(Ineffective.Hooks, list(Station.Number, Hachi), mean)))
-#
+
+hachks <- as.data.frame(with(species_data, tapply(Ineffective_Hooks, list(Station_Number, Hachi), mean)))
+
 ineffhks <- rowSums(hachks, na.rm = TRUE)
-#
+
 station <- cbind(station, ineffhks)
-#
+
 # Calculate the catch for each species at each station from the full dataset
-#
-spec.catch <- cast(species.data, Station.Number ~ Species.Code, sum, value = 
+
+spec_catch <- cast(species_data, Station_Number ~ Species_Code, sum, value = 
     "Catch")
-#
+
 # Combine the station and species catch data
-#
-catch_data2 <- merge(station, spec.catch, by.x = "Station", by.y = 
-    "Station.Number")
-#
+
+catch_data2 <- merge(station, spec_catch, by.x = "Station", by.y = 
+    "Station_Number")
+
 # Reformat to a more usable form
-#
+
 catch_data3 <- melt(catch_data2, id = c("Station", "maxHachi", "tothks",
     "ineffhks"))
-#
+
 colnames(catch_data3) <- c("Station", "maxHachi", "tothks", "ineffhks", 
     "Species", "Catch")
-#
+
 # Calculate the primary catch for each species at each station for the multi dataset
-#
-pri.data <- count(catch_data, c("Station", "Primary"))
-#
-pri.data2 <- cast(pri.data, Station ~ Primary, sum, value = "freq")
-#
-pri.data3 <- melt(pri.data2, id = "Station")
-#
-colnames(pri.data3) <- c("Station", "Primary.Catch", "Species")
-#
+
+pri_data <- count(catch_data, c("Station", "Primary"))
+
+pri_data2 <- cast(pri_data, Station ~ Primary, sum, value = "freq")
+
+pri_data3 <- melt(pri_data2, id = "Station")
+
+colnames(pri_data3) <- c("Station", "Primary_Catch", "Species")
+
 # Combine the calculated catches to get the full primary catch
-#
-catch_data4 <- join(catch_data3, pri.data3, type = "full")
-#
+
+catch_data4 <- join(catch_data3, pri_data3, type = "full")
+
 catch_data4[is.na(catch_data4)] <- 0
-#
-catch_data4$priCatch <- rowSums(catch_data4[c("Catch", "Primary.Catch")])
-#
+
+catch_data4$priCatch <- rowSums(catch_data4[c("Catch", "Primary_Catch")])
+
 # Calculate the primary CPUE
-#
+
 catch_data4$priCPUE <- catch_data4$priCatch / (catch_data4$tothks - 
-    catch_data4$ineffhks)
-#
+   catch_data4$ineffhks)
+
 # Calculate the secondary catch for each species at each station for the multi dataset
-#
-sec.data <- count(catch_data, c("Station", "Secondary"))
-#
-sec.data2 <- cast(sec.data, Station ~ Secondary, sum, value = "freq")
-#
-sec.data3 <- melt(sec.data2, id = "Station")
-#
-colnames(sec.data3) <- c("Station", "Secondary.Catch", "Species")
-#
+
+sec_data <- count(catch_data, c("Station", "Secondary"))
+
+sec_data2 <- cast(sec_data, Station ~ Secondary, sum, value = "freq")
+
+sec_data3 <- melt(sec_data2, id = "Station")
+
+colnames(sec_data3) <- c("Station", "Secondary_Catch", "Species")
+
 # Combine the calculated catches to get secondary catch (ommitting primary catch from multi dataset)
-#
-catch_data5 <- join(catch_data4, sec.data3, type = "full")
-#
+
+catch_data5 <- join(catch_data4, sec_data3, type = "full")
+
 catch_data5[is.na(catch_data5)] <- 0
-#
-catch_data5$secCatch <- rowSums(catch_data5[c("Catch", "Secondary.Catch")])
-#
+
+catch_data5$secCatch <- rowSums(catch_data5[c("Catch", "Secondary_Catch")])
+
 catch_data5 <- catch_data5[order(catch_data5$Station),]
-#
+
 # Calculate the secondary CPUE
-#
+
 catch_data5$secCPUE <- catch_data5$secCatch / (catch_data5$tothks - 
     catch_data5$ineffhks)
-#
+
 # Remove species not found in species catch codes and any 0 catch values
-#
+
 catch_data5$Species[catch_data5$Species == "30051"] <- NA
-#
+
 catch_data5$Catch[catch_data5$Catch == 0] <- NA
-#
+
 catch_data5 <- na.omit(catch_data5)
-#
-catch_full <- rename(catch_full, replace = c("Species.Code" = "Species"))
-#
+
+catch_full <- rename(catch_full, replace = c("Species_Code" = "Species"))
+
 # Obtain a list of the unique species from the full dataset
-#
-uniq.spec <- unique(catch_full$Species)
-#
-uniq.spec.frame <- data.frame(uniq.spec)
-#
-colnames(uniq.spec.frame)[colnames(uniq.spec.frame) == "uniq.spec"] <- 
-    "Species"
-#
+
+uniq_spec <- unique(catch_full$Species)
+
+uniq_spec_frame <- data.frame(uniq_spec)
+
+colnames(uniq_spec_frame)[colnames(uniq_spec_frame) == "uniq_spec"] <- "Species"
+
 # Combine with full dataset for unique list of species common names matched to species codes
-#
-uniq.spec.name <- join(uniq.spec.frame, catch_full, by = "Species", type = 
-    "left", match = "first")
-#
-uniq.spec.name[c(2:44, 46:52)] <- list(NULL)
-#
+
+uniq_spec_name <- join(uniq_spec_frame, catch_full, by = "Species", type = "left", match = "first")
+
+uniq_spec_name[c(2:44, 46:52)] <- list(NULL)
+
 # Combine species name list with calculated data frame
-#
-catch_data6 <- merge(catch_data5, uniq.spec.name, by = "Species")
-#
+
+catch_data6 <- merge(catch_data5, uniq_spec_name, by = "Species")
+
 catch_data6 <- subset(catch_data6, select = c("Station", "priCPUE", "secCPUE", "Common_Name"))
-#
+
 catch_data6$Common_Name <- as.character(catch_data6$Common_Name)
-#
+
 catch_data6$Common_Name[catch_data6$Common_Name == "Aleutian/Bering/Alaska Skate Complex"
                       ] <- "Aleutian Bering Alaska Skate Complex"
-#
+
 # Prepare any objects for use inside the for-loop
-#
+
 Results <- NULL
-#
+
 Small <- NULL
-#
+
 Significant <- NULL
-#
+
 Sample <- NULL
-#
+
 Test <- NULL
-#
+
 mymeans <- NULL
-#
+
 mymeans2 <- NULL
-#
-CPUE.rank <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
-#
-conf.int <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
-#
-conf.int2 <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
-#
+
+CPUE_rank <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
+
+conf_int <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
+
+conf_int2 <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
+
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
-#
+
 for(i in unique(catch_data6$Common_Name)){
-  CPUE.spec <- subset(catch_data6, catch_data6$Common_Name == i)
+  CPUE_spec <- subset(catch_data6, catch_data6$Common_Name == i)
   jpeg(paste("NMFS_Data/Plots/", i,".jpg", sep = ""))
-  plot(CPUE.spec$priCPUE, CPUE.spec$secCPUE, type = "p", xlab = 
+  plot(CPUE_spec$priCPUE, CPUE_spec$secCPUE, type = "p", xlab = 
          paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
-         c(0, max(CPUE.spec$priCPUE) + .001), ylim = 
-         c(0, max(CPUE.spec$secCPUE) + .001), main = 
+         c(0, max(CPUE_spec$priCPUE) + .001), ylim = 
+         c(0, max(CPUE_spec$secCPUE) + .001), main = 
          paste("Plot of", i))
   abline(a = 0, b = 1, lty = 3)
   dev.off()
-  Sample[i] <- nrow(CPUE.spec)
-  if(nrow(CPUE.spec) == 1) {
+  Sample[i] <- nrow(CPUE_spec)
+  if(nrow(CPUE_spec) == 1) {
     Small[i] <- paste("Small Sample Size")
     next} else {
       mymean <- function(priCPUE, j) mean(priCPUE[j])
-      myboot <- with(CPUE.spec, boot(priCPUE, mymean, R = 1000))
-      boot.conf <- boot.ci(myboot, type = "bca")
-      conf.int[i, ] <- boot.conf$bca
+      myboot <- with(CPUE_spec, boot(priCPUE, mymean, R = 1000))
+      if(sd(myboot$t) != 0){
+      boot_conf <- boot.ci(myboot, type = "bca")
+      conf_int[i, ] <- boot_conf$bca
+      }
       mymeans[i] <- myboot$t0
       mymean2 <- function(secCPUE, j) mean(secCPUE[j])
-      myboot2 <- with(CPUE.spec, boot(secCPUE, mymean2, R = 1000))
-      boot.conf2 <- boot.ci(myboot2, type = "bca")
-      conf.int2[i, ] <- boot.conf2$bca
+      myboot2 <- with(CPUE_spec, boot(secCPUE, mymean2, R = 1000))
+      if(sd(myboot2$t) != 0){
+      boot_conf2 <- boot.ci(myboot2, type = "bca")
+      conf_int2[i, ] <- boot_conf2$bca
+      }
       mymeans2[i] <- myboot2$t0
-      model <- lm(formula = secCPUE ~ priCPUE, data = CPUE.spec)
-      jpeg(paste("NMFS_Data/Plots/QQof",i,".jpg", sep = ""))
+      model <- lm(formula = secCPUE ~ priCPUE, data = CPUE_spec)
+      png(paste("NMFS_Data/Plots/QQof",i,".png", sep = ""))
       layout(rbind(c(1,2), c(3,3)))
-      qqnorm(CPUE.spec$priCPUE, ylim = c(-0.5,0.5), main = 
+      qqnorm(CPUE_spec$priCPUE, ylim = c(-0.5,0.5), main = 
                "QQ-plot of Primary CPUE \n", i)
-      qqline(CPUE.spec$priCPUE, lty = 3)
-      qqnorm(CPUE.spec$secCPUE, ylim = c(-0.5,0.5), main = 
+      qqline(CPUE_spec$priCPUE, lty = 3)
+      qqnorm(CPUE_spec$secCPUE, ylim = c(-0.5,0.5), main = 
                "QQ-plot of Secondary CPUE \n", i)
-      qqline(CPUE.spec$secCPUE, lty = 3)
+      qqline(CPUE_spec$secCPUE, lty = 3)
       qqnorm(residuals(model), ylim = c(-0.5,0.5),
              main = "QQ-plot of Residuals obtained from \nSimple Regression",
              "Model \n", i)
       qqline(residuals(model), lty = 3)
       dev.off()
-      CPUE.rank <- melt(CPUE.spec, id.vars = c("Station", "Common_Name"))
-      colnames(CPUE.rank) <- c("Station", "Common_Name", "Type", "CPUE")
-      CPUE.rank$CPUE <- with(CPUE.rank, rank(CPUE, ties.method = "average"))
-      CPUE.rank <- cast(CPUE.rank, Station + Common_Name ~ Type, 
+      if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
+      CPUE_rank <- melt(CPUE_spec, id.vars = c("Station", "Common_Name"))
+      colnames(CPUE_rank) <- c("Station", "Common_Name", "Type", "CPUE")
+      CPUE_rank$CPUE <- with(CPUE_rank, rank(CPUE, ties.method = "average"))
+      CPUE_rank <- cast(CPUE_rank, Station + Common_Name ~ Type, 
                         value = "CPUE")
-      result <- with(CPUE.rank, t.test(priCPUE, secCPUE, var.equal = FALSE))
+      result <- with(CPUE_rank, t.test(priCPUE, secCPUE, var.equal = FALSE))
       if (result$p.value < 0.05) {
         Significant[i] <- paste("Different Means")
       } else {
         Significant[i] <- paste("Similar Means")}
       Results[i] <- result$p.value
+      }
     }}
-#
+
 # Format all of the results into various dataframes for output into an Excel
 # file
-#
+
 Results <- data.frame(Results)
-#
+
 Significant <- data.frame(Significant)
-#
+
 Small <- data.frame(Small)
-#
+
 Sample <- data.frame(Sample)
-#
+
 Means <- data.frame(mymeans)
-#
+
 Means2 <- data.frame(mymeans2)
-#
-Significant.Results <- merge(Results, Significant, by = "row.names", all = TRUE)
-#
-Small.Sample <- merge(Small, Sample, by = "row.names", all = TRUE)
-#
-Results <- merge(Significant.Results, Small.Sample, by = "Row.names", all = TRUE)
-#
+
+Significant_Results <- merge(Results, Significant, by = "row.names", all = TRUE)
+
+Small_Sample <- merge(Small, Sample, by = "row.names", all = TRUE)
+
+Results <- merge(Significant_Results, Small_Sample, by = "Row.names", all = TRUE)
+
 if(nrow(Small) > 0){
-colnames(Results) <- c("Species", "p-value", "Significance", "Warning", "Sample Size")
-} else {colnames(Results) <- c("Species", "p-value", "Significance", "Sample Size")}
-#
-Significant <- subset(Significant.Results, Significant == "Different Means")
-#
+  colnames(Results) <- c("Species", "p-value", "Significance", "Warning", "Sample Size")
+} else {
+  colnames(Results) <- c("Species", "p-value", "Significance", "Sample Size")
+}
+
+Significant <- subset(Significant_Results, Significant == "Different Means")
+
 if(nrow(Significant) > 0) {colnames(Significant) <- c("Species", "p-value", "Significant")
   Significant <- subset(Significant, select = c("Species", "p-value"))}
-#
-colnames(conf.int) <- c("Levels", "Unk", "Unk2", "Primary Lower CPUE", "Primary Upper CPUE")
-#
-colnames(conf.int2) <- c("Levels", "Unk", "Unk2", "Secondary Lower CPUE", "Secondary Upper CPUE")
-#
-conf.int <- subset(conf.int, select = c("Primary Lower CPUE", "Primary Upper CPUE"))
-#
-conf.int <- na.omit(conf.int)
-#
-conf.int2 <- subset(conf.int2, select = c("Secondary Lower CPUE", "Secondary Upper CPUE"))
-#
-conf.int2 <- na.omit(conf.int2)
-#
-conf.int.all <- merge(conf.int, conf.int2, by = "row.names", all = TRUE)
-#
+
+colnames(conf_int) <- c("Levels", "Unk", "Unk2", "Primary Lower CPUE", "Primary Upper CPUE")
+
+colnames(conf_int2) <- c("Levels", "Unk", "Unk2", "Secondary Lower CPUE", "Secondary Upper CPUE")
+
+conf_int <- subset(conf_int, select = c("Primary Lower CPUE", "Primary Upper CPUE"))
+
+conf_int <- na.omit(conf_int)
+
+conf_int2 <- subset(conf_int2, select = c("Secondary Lower CPUE", "Secondary Upper CPUE"))
+
+conf_int2 <- na.omit(conf_int2)
+
+conf_int_all <- merge(conf_int, conf_int2, by = "row.names", all = TRUE)
+
 means <- merge(Means, Means2, by = "row.names", all = TRUE)
-#
+
 colnames(means) <- c("Species", "Primary Mean CPUE", "Secondary Mean CPUE")
-#
-colnames(conf.int.all) <- c("Species", "Primary Lower CPUE", 
-                            "Primary Upper CPUE", "Secondary Lower CPUE", "Secondary Upper CPUE")
-#
-conf.int.all <- merge(conf.int.all, means, by = "Species", all = TRUE)
-#
-conf.int.all$`Primary Mean CPUE` <- round(conf.int.all$`Primary Mean CPUE`, 4)
-#
-conf.int.all$`Primary Lower CPUE` <- round(conf.int.all$`Primary Lower CPUE`, 4)
-#
-conf.int.all$`Primary Upper CPUE` <- round(conf.int.all$`Primary Upper CPUE`, 4)
-#
-conf.int.all$`Secondary Mean CPUE` <- round(conf.int.all$`Secondary Mean CPUE`, 4)
-#
-conf.int.all$`Secondary Lower CPUE` <- round(conf.int.all$`Secondary Lower CPUE`, 4)
-#
-conf.int.all$`Secondary Upper CPUE` <- round(conf.int.all$`Secondary Upper CPUE`, 4)
-#
-conf.int.all$`Primary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf.int.all$`Primary Mean CPUE`, " (", conf.int.all$`Primary Lower CPUE`, ", ", conf.int.all$`Primary Upper CPUE`, ")", sep = "")
-#
-conf.int.all$`Secondary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf.int.all$`Secondary Mean CPUE`, " (", conf.int.all$`Secondary Lower CPUE`, ", ", conf.int.all$`Secondary Upper CPUE`, ")", sep = "")
-#
-conf.int.all <- subset(conf.int.all, select = c("Species", "Primary Mean CPUE (Lower Bound, Upper Bound)", "Secondary Mean CPUE (Lower Bound, Upper Bound)"))
-#
+
+colnames(conf_int_all) <- c("Species", "Primary Lower CPUE", "Primary Upper CPUE", "Secondary Lower CPUE", "Secondary Upper CPUE")
+
+conf_int_all <- merge(conf_int_all, means, by = "Species", all = TRUE)
+
+conf_int_all$`Primary Mean CPUE` <- round(conf_int_all$`Primary Mean CPUE`, 4)
+
+conf_int_all$`Primary Lower CPUE` <- round(conf_int_all$`Primary Lower CPUE`, 4)
+
+conf_int_all$`Primary Upper CPUE` <- round(conf_int_all$`Primary Upper CPUE`, 4)
+
+conf_int_all$`Secondary Mean CPUE` <- round(conf_int_all$`Secondary Mean CPUE`, 4)
+
+conf_int_all$`Secondary Lower CPUE` <- round(conf_int_all$`Secondary Lower CPUE`, 4)
+
+conf_int_all$`Secondary Upper CPUE` <- round(conf_int_all$`Secondary Upper CPUE`, 4)
+
+conf_int_all$`Primary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all$`Primary Mean CPUE`, " (", conf_int_all$`Primary Lower CPUE`, ", ", conf_int_all$`Primary Upper CPUE`, ")", sep = "")
+
+conf_int_all$`Secondary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all$`Secondary Mean CPUE`, " (", conf_int_all$`Secondary Lower CPUE`, ", ", conf_int_all$`Secondary Upper CPUE`, ")", sep = "")
+
+conf_int_all <- subset(conf_int_all, select = c("Species", "Primary Mean CPUE (Lower Bound, Upper Bound)", "Secondary Mean CPUE (Lower Bound, Upper Bound)"))
+
 # Calculate the bootstrapped difference-of-means confidence intervals for
 # each species
-#
-boot.data <- melt(catch_data6, id.vars = c("Station", "Common_Name"))
-#
-colnames(boot.data) <- c("Station", "Common_Name", "Type", "CPUE")
-#
+
+boot_data <- melt(catch_data6, id.vars = c("Station", "Common_Name"))
+
+colnames(boot_data) <- c("Station", "Common_Name", "Type", "CPUE")
+
 diff.means <- function(d, f)
 {    n <- nrow(d)
 tp1 <- 1:table(as.numeric(d$Type))[1]
@@ -1073,61 +1011,65 @@ ss1 <- sum(d[tp1, 4]^2 * f[tp1]) - (m1 * m1 * sum(f[tp1]))
 ss2 <- sum(d[-tp1, 4]^2 * f[-tp1]) - (m2 * m2 * sum(f[-tp1]))
 c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
 }
-#
-boot.result <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
-#
+
+boot_result <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
+
 mean <- NULL
-#
-for(i in unique(boot.data$Common_Name)){
-  boot.spec <- subset(boot.data, boot.data$Common_Name == i)
-  if (nrow(boot.spec) < 3) {next}
-  type.boot <- boot(boot.spec, diff.means, R = 1000, strata = boot.spec[ ,4])
-  boot.test <- boot.ci(type.boot, type = "perc")
-  boot.result[i, ] <- boot.test$perc
-  mean[i] <- type.boot$t0
+
+for(i in unique(boot_data$Common_Name)){
+  boot_spec <- subset(boot_data, boot_data$Common_Name == i)
+  if (nrow(boot_spec) < 3) {next}
+  type_boot <- boot(boot_spec, diff.means, R = 1000, strata = boot_spec[ ,4])
+  if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
+  boot_test <- boot.ci(type_boot, type = "perc")
+  boot_result[i, ] <- boot_test$perc
+  }
+  mean[i] <- type_boot$t0
 }
-#
+
 # Format these results as a dataframe for output to Excel
-#
-boot.result <- subset(boot.result, select = c("V4", "V5"))
-#
+
+boot_result <- subset(boot_result, select = c("V4", "V5"))
+
 mean <- data.frame(mean)
-#
-boot.result <- na.omit(boot.result)
-#
-boot.result <- merge(mean, boot.result, by = "row.names", all = TRUE)
-#
-colnames(boot.result) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound")
-#
-boot.result$`Mean Difference` <- signif(boot.result$`Mean Difference`, 2)
-#
-boot.result$`Lower Bound` <- signif(boot.result$`Lower Bound`, 2)
-#
-boot.result$`Upper Bound` <- signif(boot.result$`Upper Bound`, 2)
-#
-boot.result$`Mean Difference (Lower Bound, Upper Bound)` <- paste(boot.result$`Mean Difference`, " (", boot.result$`Lower Bound`, ", ", boot.result$`Upper Bound`, ")", sep = "")
-#
-boot.result <- subset(boot.result, select = c("Species", "Mean Difference (Lower Bound, Upper Bound)"))
+
+boot_result <- na.omit(boot_result)
+
+boot_result <- merge(mean, boot_result, by = "row.names", all = TRUE)
+
+colnames(boot_result) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound")
+
+boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
+
+boot_result$`Lower Bound` <- signif(boot_result$`Lower Bound`, 2)
+
+boot_result$`Upper Bound` <- signif(boot_result$`Upper Bound`, 2)
+
+boot_result$`Mean Difference (Lower Bound, Upper Bound)` <- paste(boot_result$`Mean Difference`, " (", boot_result$`Lower Bound`, ", ", boot_result$`Upper Bound`, ")", sep = "")
+
+boot_result <- subset(boot_result, select = c("Species", "Mean Difference (Lower Bound, Upper Bound)"))
+#===============================================================
+#===============================================================
 ```
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
-#
+
 # Change the first NA value in each column for defining later
-#
+
 Results$`p-value`[match(NA, Results$`p-value`)] <- "-*"
-#
+
 Results$Significance <- as.character(Results$Significance)
-#
+
 Results$Significance[match(NA, Results$Significance)] <- "-*"
-#
+
 Results$Warning <- as.character(Results$Warning)
-#
+
 Results$Warning[match(NA, Results$Warning)] <- "-**"
-#
+
 # Set all other NA values to '-' and create table of results
-#
+
 options(knitr.kable.NA = '-')
-#
+
 kable(Results, caption = "Table 4 NMFS. All of the species analyzed in the study, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
 
@@ -1137,107 +1079,107 @@ kable(Results, caption = "Table 4 NMFS. All of the species analyzed in the study
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
-#
+
 # Create a table of the BCa confidence intervals
-#
-kable(conf.int.all, caption = "Table 5 NMFS. Bootstrapped 95% bias-corrected confidence intervals for each species on the Primary and Secondary CPUE. Means are included to see the direction of bias in the samples.", digits = 4, row.names = FALSE)
+
+kable(conf_int_all, caption = "Table 5 NMFS. Bootstrapped 95% bias-corrected confidence intervals for each species on the Primary and Secondary CPUE. Means are included to see the direction of bias in the samples.", digits = 4, row.names = FALSE)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
-#
+
 # Create a table of difference-of-means confidence intervals
-#
-kable(boot.result, caption = "Table 6 NMFS. Bootstrapped 95% percentile confidence intervals of the difference of means between the Primary and Secondary CPUE. The means are included.", row.names = FALSE)
+
+kable(boot_result, caption = "Table 6 NMFS. Bootstrapped 95% percentile confidence intervals of the difference of means between the Primary and Secondary CPUE. The means are included.", row.names = FALSE)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Figure 3 NMFS. Scatterplots of Pacific Cod, Lingcod, Octopus, and Shortspine Thornyhead with a reference line [slope = 1, intercept = 0]. Note the variation from the reference line in the Lingcod versus the perfect alignment on the Pacific Cod.  Also, note the low sample sizes of the Tanner Crab unident. and Octopus. These species were chosen as a representation of the overall variation in the dataset.", fig.height = 6.5, fig.width = 6.5}
-#
+
 # Store data for representative species and year
-#
-lin.cod <- catch_data6[catch_data6$Common_Name == "Lingcod",]
-#
-pac.cod <- catch_data6[catch_data6$Common_Name == "Pacific cod",]
-#
-short.thorn <- catch_data6[catch_data6$Common_Name == "Shortspine thornyhead",]
-#
-oct.pus <- catch_data6[catch_data6$Common_Name == "Octopus",]
-#
+
+lin_cod <- catch_data6[catch_data6$Common_Name == "Lingcod",]
+
+pac_cod <- catch_data6[catch_data6$Common_Name == "Pacific cod",]
+
+short_thorn <- catch_data6[catch_data6$Common_Name == "Shortspine thornyhead",]
+
+oct_pus <- catch_data6[catch_data6$Common_Name == "Octopus",]
+
 # Output plots of species into a single figure with reference lines
-#
+
 par(mfrow = c(2, 2))
-#
-with(pac.cod, plot(priCPUE, secCPUE, type = "p", xlab = 
+
+with(pac_cod, plot(priCPUE, secCPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(priCPUE) + .001), ylim = 
         c(0, max(secCPUE) + .001), main = 
         paste("Plot of Pacific Cod")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
-with(lin.cod, plot(priCPUE, secCPUE, type = "p", xlab = 
+
+with(lin_cod, plot(priCPUE, secCPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(priCPUE) + .001), ylim = 
         c(0, max(secCPUE) + .001), main = 
         paste("Plot of Lingcod")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
-with(oct.pus, plot(priCPUE, secCPUE, type = "p", xlab = 
+
+with(oct_pus, plot(priCPUE, secCPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(priCPUE) + .001), ylim = 
         c(0, max(secCPUE) + .001), main = 
         paste("Plot of Octopus")))
-#
+
 abline(a = 0, b = 1, lty = 3)
-#
-with(short.thorn, plot(priCPUE, secCPUE, type = "p", xlab = 
+
+with(short_thorn, plot(priCPUE, secCPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(priCPUE) + .001), ylim = 
         c(0, max(secCPUE) + .001), main = 
         paste("Plot of Shortspine Thornyhead")))
-#
+
 abline(a = 0, b = 1, lty = 3)
 ```
 
 ####
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Figure 4 NMFS.  QQ-plots demonstrating the non-normality of the data for Pacific Cod (left 3 plots) and Lingcod (right 3 plots).  There is a greater deviation in the Pacific Cod than the Lingcod plots. These species were chosen to demonstrate the variation in the dataset", fig.height = 5, fig.width = 6.5}
-#
+
 # Create a linear model of the representative species CPUE's
-#
-model <- lm(formula = secCPUE ~ priCPUE, data = pac.cod)
-#
-model2 <- lm(formula = secCPUE ~ priCPUE, data = lin.cod)
-#
+
+model <- lm(formula = secCPUE ~ priCPUE, data = pac_cod)
+
+model2 <- lm(formula = secCPUE ~ priCPUE, data = lin_cod)
+
 # Output QQ-plots of species in a single figure with reference lines
-#
+
 layout(mat = matrix(c(1,2,4,5,3,3,6,6), nrow = 2, ncol = 4, byrow = TRUE))
-#
-with(pac.cod, qqnorm(priCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nPacific Cod"))
-#
-with(pac.cod, qqline(priCPUE, lty = 3))
-#
-with(pac.cod, qqnorm(secCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nPacific Cod"))
-#
-with(pac.cod, qqline(secCPUE, lty = 3))
-#
-with(pac.cod, qqnorm(residuals(model), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nPacific Cod"))
-#
-with(pac.cod, qqline(residuals(model), lty = 3))
-#
-with(lin.cod, qqnorm(priCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nLingcod"))
-#
-with(lin.cod, qqline(priCPUE, lty = 3))
-#
-with(lin.cod, qqnorm(secCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nLingcod"))
-#
-with(lin.cod, qqline(secCPUE, lty = 3))
-#
-with(lin.cod, qqnorm(residuals(model2), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nLingcod"))
-#
-with(lin.cod, qqline(residuals(model2), lty = 3))
+
+with(pac_cod, qqnorm(priCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nPacific Cod"))
+
+with(pac_cod, qqline(priCPUE, lty = 3))
+
+with(pac_cod, qqnorm(secCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nPacific Cod"))
+
+with(pac_cod, qqline(secCPUE, lty = 3))
+
+with(pac_cod, qqnorm(residuals(model), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nPacific Cod"))
+
+with(pac_cod, qqline(residuals(model), lty = 3))
+
+with(lin_cod, qqnorm(priCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nPrimary CPUE \nLingcod"))
+
+with(lin_cod, qqline(priCPUE, lty = 3))
+
+with(lin_cod, qqnorm(secCPUE, ylim = c(-0.5,0.5), main = "QQ-plot of \nSecondary CPUE \nLingcod"))
+
+with(lin_cod, qqline(secCPUE, lty = 3))
+
+with(lin_cod, qqnorm(residuals(model2), ylim = c(-0.5,0.5), main = "QQ-plot of Residuals obtained from \nSimple Regression Model \nLingcod"))
+
+with(lin_cod, qqline(residuals(model2), lty = 3))
 ```
