@@ -16,21 +16,14 @@ bibliography: Format/library.bib
 # Danny Cooper
 # IPHC Data Analysis
 
-# Source file to install/load necessary packages
+# Install/load necessary packages
 
-source("Packages/packages.R")
-
-<<<<<<< HEAD
-=======
-#########################
-#here's s nice trick for install/loading required libraries, so you don't have to source to another file
 libs<-c("plyr","reshape","rmarkdown","knitr","boot")
 if(length(libs[which(libs %in% rownames(installed.packages()) == FALSE )])>0){
   install.packages(libs[which(libs %in% rownames(installed.packages()) == FALSE )])
   }
 lapply(libs,library,character.only=T)
 
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 # Import relevant files (hook census and hook data files)
 
 catch_data <- read.csv("IPHC_Data/IPHC_hook_census.csv", na.strings = "", header = TRUE)
@@ -215,12 +208,7 @@ Small <- matrix(ncol = Y, nrow = I)
 
 Significant <- matrix(ncol = Y, nrow = I)
 
-<<<<<<< HEAD
 Sample <- matrix(ncol = Y, nrow = I)
-=======
-Sample <- matrix(ncol = Y, nrow = I) #NOTE: "sample" is a base function, here you capitalized it so it doesn't overwrite the function,
-#but in practice, probably better to use a more descriptive name, e.g., "Sample_XXX" Not worth changing, for future reference.
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 Test <- matrix(ncol = Y, nrow = I)
 
@@ -240,13 +228,8 @@ conf_int2 <- array(dim = c(I,5,Y))
 for(i in 1:nrow(unq_key)){
   spec <- unq_key[i, 2]
   year <- unq_key[i, 1]
-<<<<<<< HEAD
   row <- match(spec, unique(unq_key$Common_Name))
   col <- match(year, unique(unq_key$Year))
-=======
-  row <- match(spec, unique(unq_key$Common_Name)) #same with my comment on "Sample", suggest using something like "row_i"
-  col <- match(year, unique(unq_key$Year)) #"col_i", not worth changing at this point, but for future reference
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
   CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,]
   png(paste("IPHC_Data/Plots/", spec, year,".png", sep = ""))
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
@@ -275,11 +258,7 @@ for(i in 1:nrow(unq_key)){
     conf_int2[row, ,col] <- boot_conf2$bca
     }
     mymeans2[row, col] <- myboot2$t0
-<<<<<<< HEAD
     model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = CPUE_spec)
-=======
-    model <- lm(formula = Secondary_CPUE ~ Primary_CPUE, data = CPUE_spec) #see comment above re: "Sample"
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
     jpeg(paste("IPHC_Data/Plots/QQof",spec,year,".jpg", sep = ""))
     layout(rbind(c(1,2), c(3,3)))
     qqnorm(CPUE_spec$Primary_CPUE, ylim = c(-0.5,0.5), main = 
@@ -365,20 +344,11 @@ Significant_Results <- merge(Results, Significant, by = c("Species", "Year"), al
 
 Small_Sample <- merge(Small, Sample, by = c("Species", "Year"), all = TRUE)
 
-<<<<<<< HEAD
 Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"), all = TRUE)
 
 Results <- Results[!(is.na(Results$`p-value`)) | !(is.na(Results$Significance)) | !(is.na(Results$Warning)) | !(is.na(Results$`Sample Size`)), ]
 
 Significant <- subset(Significant_Results, Significant == "Different Means")
-=======
-Results <- merge(Significant_Results, Small_Sample, by = c("Species", "Year"), all = TRUE) #so here is another object "Results"
-#this can be dangerous
-
-Results <- Results[!(is.na(Results$`p-value`)) | !(is.na(Results$Significance)) | !(is.na(Results$Warning)) | !(is.na(Results$`Sample Size`)), ]
-
-Significant <- subset(Significant_Results, Significance == "Different Means")
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 if(nrow(Significant) > 0) {Significant <- subset(Significant, select = c("Species", "Year", "p-value"))}
 
@@ -396,11 +366,7 @@ dimnames(conf_int)[[3]] <- as.character(unlist(year_names))
 
 conf_int <- as.data.frame(as.table(conf_int))
 
-<<<<<<< HEAD
 conf_int <- cast(conf_int, Var1 + Var3 ~ Var2, value = "Freq")
-=======
-conf_int <- cast(conf_int, Var1 + Var3 ~ Var2, value = "Freq") #also a good place to use a new name, the structure of the data is changing
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 conf_int <- conf_int[c(1, 2, 6, 7)]
 
@@ -422,13 +388,9 @@ colnames(conf_int2) <- c("Species", "Year", "Secondary Lower CPUE", "Secondary U
 
 conf_int_all <- merge(conf_int, conf_int2, by = c("Species", "Year"), all = TRUE)
 
-<<<<<<< HEAD
-means <- merge(mymeans, mymeans2, by = c("Species", "Year"), all = TRUE)
-=======
-means <- merge(mymeans, mymeans2, by = c("Species", "Year"), all = TRUE)#same comment here
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
+Means <- merge(mymeans, mymeans2, by = c("Species", "Year"), all = TRUE)
 
-conf_int_all <- merge(conf_int_all, means, by = c("Species", "Year"), all = TRUE)
+conf_int_all <- merge(conf_int_all, Means, by = c("Species", "Year"), all = TRUE)
 
 conf_int_all <- na.omit(conf_int_all)
 
@@ -475,7 +437,7 @@ Y <- length(unique(boot_data$Year))
 
 boot_result <- array(dim = c(I, 5, Y))
 
-mean <- matrix(ncol = Y, nrow = I)
+mean_boot <- matrix(ncol = Y, nrow = I)
 
 for(i in 1:nrow(unq_key)){
   spec <- unq_key[i, 2]
@@ -491,7 +453,7 @@ for(i in 1:nrow(unq_key)){
   boot_test <- boot.ci(type_boot, type = "perc")
   boot_result[row, , col] <- boot_test$perc
   }
-  mean[row, col] <- type_boot$t0[1]
+  mean_boot[row, col] <- type_boot$t0[1]
 }
 
 # Format these results as a dataframe for output to Word
@@ -516,19 +478,19 @@ boot_result <- boot_result[c(1, 2, 6, 7)]
 
 colnames(boot_result) <- c("Species", "Year", "Lower Bound", "Upper Bound")
 
-colnames(mean) <- unique(CPUE_data$Year)
+colnames(mean_boot) <- unique(CPUE_data$Year)
 
-rownames(mean) <- unique(CPUE_data$Common_Name)
+rownames(mean_boot) <- unique(CPUE_data$Common_Name)
 
-mean <- melt(mean)
+mean_boot <- melt(mean_boot)
 
-colnames(mean) <- c("Species", "Year", "Mean Difference")
+colnames(mean_boot) <- c("Species", "Year", "Mean Difference")
 
-mean <- na.omit(mean)
+mean_boot <- na.omit(mean_boot)
 
 boot_result <- na.omit(boot_result)
 
-boot_result <- merge(mean, boot_result, by = c("Species", "Year"), all = TRUE)
+boot_result <- merge(mean_boot, boot_result, by = c("Species", "Year"), all = TRUE)
 
 boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
 
@@ -627,11 +589,7 @@ kable(boot_result, caption = "Table 3 IPHC. Bootstrapped 95% percentile confiden
 
 dark_fish <- CPUE_data[CPUE_data$Common_Name == "Darkblotched Rkfish" & CPUE_data$Year == "2008",]
 
-<<<<<<< HEAD
 pac_cod <- CPUE_data[CPUE_data$Common_Name == "Pacific Cod" & CPUE_data$Year == "2004",]
-=======
-pac_cod <- CPUE_data[CPUE_data$Common_Name == "Pacific Cod" & CPUE_data$Year == "2004",] #why is this 2004, when everything else is 2008? Hmm....I see, it doesn't line up as nicely. I'll think about this a bit more when I look at the document
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 lin_cod <- CPUE_data[CPUE_data$Common_Name == "Lingcod" & CPUE_data$Year == "2008",]
 
@@ -738,11 +696,7 @@ names(catch_full)[c(6, 44, 45, 51)] <- c("Station_Number", "Species_Code", "Comm
 # for Primary and Secondary catch
 
 catch_data <- merge(catch_data, catch_codes, by.x = "Primary", by.y = 
-<<<<<<< HEAD
     "Polycorder_Number", all.x = TRUE)
-=======
-    "Polycorder_Number", all.x = TRUE) #new object names might be good in this section, there are four "loops" and if you arent careful, that can get in trouble.....a bad habit of mine, that I'm trying to break. It's ok sometimes, but when you start merging or changing the structure of the data, it's a good practice to create a new object. This probably originated from my original code ;-P
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 catch_data <- subset(catch_data, select = c("Station", "Species_Code", 
     "Secondary"))
@@ -788,11 +742,7 @@ hachks <- as.data.frame(with(species_data, tapply(Ineffective_Hooks, list(Statio
 
 ineffhks <- rowSums(hachks, na.rm = TRUE)
 
-<<<<<<< HEAD
 station <- cbind(station, ineffhks)
-=======
-station <- cbind(station, ineffhks) #here it's less of a problem, you aren't changing the data, but just adding a column (as long as you don't accidentally do it more than once, in which case you will end up with multiple "ineffhks" columns)
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 
 # Calculate the catch for each species at each station from the full dataset
 
@@ -919,10 +869,6 @@ conf_int2 <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
 
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
-<<<<<<< HEAD
-
-=======
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 for(i in unique(catch_data6$Common_Name)){
   CPUE_spec <- subset(catch_data6, catch_data6$Common_Name == i)
   jpeg(paste("NMFS_Data/Plots/", i,".jpg", sep = ""))
@@ -936,54 +882,52 @@ for(i in unique(catch_data6$Common_Name)){
   Sample[i] <- nrow(CPUE_spec)
   if(nrow(CPUE_spec) == 1) {
     Small[i] <- paste("Small Sample Size")
-    next} else {
-      mymean <- function(priCPUE, j) mean(priCPUE[j])
-      myboot <- with(CPUE_spec, boot(priCPUE, mymean, R = 1000))
-      if(sd(myboot$t) != 0){
+    next
+  } else {
+    mymean <- function(priCPUE, j) mean(priCPUE[j])
+    myboot <- with(CPUE_spec, boot(priCPUE, mymean, R = 1000))
+    if(sd(myboot$t) != 0){
       boot_conf <- boot.ci(myboot, type = "bca")
       conf_int[i, ] <- boot_conf$bca
-      }
-      mymeans[i] <- myboot$t0
-      mymean2 <- function(secCPUE, j) mean(secCPUE[j])
-      myboot2 <- with(CPUE_spec, boot(secCPUE, mymean2, R = 1000))
-      if(sd(myboot2$t) != 0){
+    }
+    mymeans[i] <- myboot$t0
+    mymean2 <- function(secCPUE, j) mean(secCPUE[j])
+    myboot2 <- with(CPUE_spec, boot(secCPUE, mymean2, R = 1000))
+    if(sd(myboot2$t) != 0){
       boot_conf2 <- boot.ci(myboot2, type = "bca")
       conf_int2[i, ] <- boot_conf2$bca
-      }
-      mymeans2[i] <- myboot2$t0
-      model <- lm(formula = secCPUE ~ priCPUE, data = CPUE_spec)
-      png(paste("NMFS_Data/Plots/QQof",i,".png", sep = ""))
-      layout(rbind(c(1,2), c(3,3)))
-      qqnorm(CPUE_spec$priCPUE, ylim = c(-0.5,0.5), main = 
-               "QQ-plot of Primary CPUE \n", i)
-      qqline(CPUE_spec$priCPUE, lty = 3)
-      qqnorm(CPUE_spec$secCPUE, ylim = c(-0.5,0.5), main = 
-               "QQ-plot of Secondary CPUE \n", i)
-      qqline(CPUE_spec$secCPUE, lty = 3)
-      qqnorm(residuals(model), ylim = c(-0.5,0.5),
-             main = "QQ-plot of Residuals obtained from \nSimple Regression",
-             "Model \n", i)
-      qqline(residuals(model), lty = 3)
-      dev.off()
-      if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
+    }
+    mymeans2[i] <- myboot2$t0
+    model <- lm(formula = secCPUE ~ priCPUE, data = CPUE_spec)
+    png(paste("NMFS_Data/Plots/QQof",i,".png", sep = ""))
+    layout(rbind(c(1,2), c(3,3)))
+    qqnorm(CPUE_spec$priCPUE, ylim = c(-0.5,0.5), main = 
+             "QQ-plot of Primary CPUE \n", i)
+    qqline(CPUE_spec$priCPUE, lty = 3)
+    qqnorm(CPUE_spec$secCPUE, ylim = c(-0.5,0.5), main = 
+             "QQ-plot of Secondary CPUE \n", i)
+    qqline(CPUE_spec$secCPUE, lty = 3)
+    qqnorm(residuals(model), ylim = c(-0.5,0.5),
+           main = "QQ-plot of Residuals obtained from \nSimple Regression",
+           "Model \n", i)
+    qqline(residuals(model), lty = 3)
+    dev.off()
+    if(sd(myboot$t) != 0 | sd(myboot2$t) != 0){
       CPUE_rank <- melt(CPUE_spec, id.vars = c("Station", "Common_Name"))
       colnames(CPUE_rank) <- c("Station", "Common_Name", "Type", "CPUE")
       CPUE_rank$CPUE <- with(CPUE_rank, rank(CPUE, ties.method = "average"))
       CPUE_rank <- cast(CPUE_rank, Station + Common_Name ~ Type, 
                         value = "CPUE")
       result <- with(CPUE_rank, t.test(priCPUE, secCPUE, var.equal = FALSE))
-      if (result$p.value < 0.05) {
-        Significant[i] <- paste("Different Means")
-      } else {
-        Significant[i] <- paste("Similar Means")}
+    if (result$p.value < 0.05) {
+      Significant[i] <- paste("Different Means")
+    } else {
+      Significant[i] <- paste("Similar Means")}
       Results[i] <- result$p.value
-      }
-    }}
+    }
+  }
+}
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
 # Format all of the results into various dataframes for output into an Excel
 # file
 
@@ -1030,13 +974,13 @@ conf_int2 <- na.omit(conf_int2)
 
 conf_int_all <- merge(conf_int, conf_int2, by = "row.names", all = TRUE)
 
-means <- merge(Means, Means2, by = "row.names", all = TRUE)
+means_all <- merge(Means, Means2, by = "row.names", all = TRUE)
 
-colnames(means) <- c("Species", "Primary Mean CPUE", "Secondary Mean CPUE")
+colnames(means_all) <- c("Species", "Primary Mean CPUE", "Secondary Mean CPUE")
 
 colnames(conf_int_all) <- c("Species", "Primary Lower CPUE", "Primary Upper CPUE", "Secondary Lower CPUE", "Secondary Upper CPUE")
 
-conf_int_all <- merge(conf_int_all, means, by = "Species", all = TRUE)
+conf_int_all <- merge(conf_int_all, means_all, by = "Species", all = TRUE)
 
 conf_int_all$`Primary Mean CPUE` <- round(conf_int_all$`Primary Mean CPUE`, 4)
 
@@ -1075,60 +1019,32 @@ c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
 
 boot_result <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
 
-<<<<<<< HEAD
-mean <- NULL
+diff_mean_results <- NULL
 
 for(i in unique(boot_data$Common_Name)){
   boot_spec <- subset(boot_data, boot_data$Common_Name == i)
   if (nrow(boot_spec) < 3) {next}
   type_boot <- boot(boot_spec, diff.means, R = 1000, strata = boot_spec[ ,4])
   if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
-  boot_test <- boot.ci(type_boot, type = "perc")
-  boot_result[i, ] <- boot_test$perc
-  }
-  mean[i] <- type_boot$t0
-=======
-diff_mean_results <- NULL#"mean" is a function name, changed to avoid potential overwrite errors, same comment in IPHC section
-
-for(i in unique(boot_data$Common_Name)){ #OK, well this for loop taught me something, I've never seen them set up this way. Cool the way it assigns the row names.
-  boot_spec <- subset(boot_data, boot_data$Common_Name == i)
-  #if (nrow(boot_spec) < 3) {next}
-  type_boot <- boot(boot_spec, diff.means, R = 1000, strata = boot_spec[ ,4])
-  if(sd(type_boot$t[, 1]) != 0 & sd(type_boot$t[, 2]) != 0){
     boot_test <- boot.ci(type_boot, type = "perc")
     boot_result[i, ] <- boot_test$perc
   }
-  diff_mean_results[i] <- type_boot$t0 #make sure that this is pulling the correct info, in the IPHC section you had type_boot$t0[1], here you have type_boot$t0. Why?
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
+  diff_mean_results[i] <- type_boot$t0[1]
 }
 
 # Format these results as a dataframe for output to Excel
 
-<<<<<<< HEAD
 boot_result <- subset(boot_result, select = c("V4", "V5"))
-
-mean <- data.frame(mean)
-
-boot_result <- na.omit(boot_result)
-
-boot_result <- merge(mean, boot_result, by = "row.names", all = TRUE)
-
-colnames(boot_result) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound")
-
-boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
-=======
-boot_result <- subset(boot_result, select = c("V4", "V5")) #suggest new object name here because removing data
 
 diff_mean_results <- data.frame(diff_mean_results)
 
 boot_result <- na.omit(boot_result)
 
-boot_result <- merge(diff_mean_results, boot_result, by = "row.names", all = TRUE) #suggest new object name here because of merging two datasets
+boot_result <- merge(diff_mean_results, boot_result, by = "row.names", all = TRUE)
 
-colnames(boot_result) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound") #this doesn't work because there are too few column names
+colnames(boot_result) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound")
 
-boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2) #It looks like this function isn't going to give the desired output format. I think that it is preferable to have consistent decimal places. Maybe multiply all the values by 100 and report in the caption that they are 10e-3. This comment will probably apply throughout, so I'll think about it a bit and comment again when I review the text. 
->>>>>>> 39e7b2489c8342788efbec413e1a18b46f81a409
+boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
 
 boot_result$`Lower Bound` <- signif(boot_result$`Lower Bound`, 2)
 
