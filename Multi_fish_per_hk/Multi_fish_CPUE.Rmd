@@ -10,7 +10,7 @@ output:
 bibliography: Format/library.bib
 ---
 
-```{r echo = FALSE, warning = FALSE, message = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, results = "hide"}
 #===============================================================
 #===============================================================
 # Danny Cooper
