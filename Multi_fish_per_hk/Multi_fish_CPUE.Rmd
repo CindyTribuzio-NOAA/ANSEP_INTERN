@@ -5,6 +5,7 @@ author: "Danny Cooper"
 csl: Format/ecology.csl
 output:
   word_document:
+    toc: yes
     fig_caption: yes
     reference_docx: markdown_reference.docx
 bibliography: Format/library.bib
@@ -531,7 +532,9 @@ The results shown for the IPHC survey of the unequal variances T Test indicate t
 
 The NMFS survey results were very similar to the IPHC survey results. The Octopus showed significant results in the NMFS survey. The species that had a 2.5th and 97.5th confidence interval that did not contain 0 are not considered significant given the results of the other two tests. The octopus showed significance for all 3 tests with a sufficient sample size [n = 19]. The deviation between the Primary and Secondary CPUE can be clearly seen in *Figure 3*. It is unclear what this indicates at this time, though the results show a greater Primary CPUE than Secondary CPUE. A possible reasoning for why most species show no dependence on which fish is recorded is that the occurrence of two fish on the same hook is relatively rare. Of the 1,482,498 hooks analyzed in this study, only 0.048% of them had secondary catch, and of the hooks that had primary catch (excluding inanimate objects and unidentified organic matter), only 0.174% had secondary catch.
 
-###References
+###Acknowledgments
+
+###Citations
 <br>
 
 <div id="refs" class="references"></div>
