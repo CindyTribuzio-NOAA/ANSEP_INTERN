@@ -5,9 +5,9 @@ author: "Danny Cooper"
 csl: Format/ecology.csl
 output:
   word_document:
-    toc: yes
     fig_caption: yes
     reference_docx: markdown_reference.docx
+    toc: yes
 bibliography: Format/library.bib
 ---
 
@@ -590,13 +590,13 @@ kable(boot_result, caption = "Table 3 IPHC. Bootstrapped 95% percentile confiden
 
 # Store data for representative species and year
 
-dark_fish <- CPUE_data[CPUE_data$Common_Name == "Darkblotched Rkfish" & CPUE_data$Year == "2008",]
+dark_fish <- CPUE_data[CPUE_data$Common_Name == "Darkblotched Rkfish" & CPUE_data$Year == "2007",]
 
-pac_cod <- CPUE_data[CPUE_data$Common_Name == "Pacific Cod" & CPUE_data$Year == "2004",]
+pac_cod <- CPUE_data[CPUE_data$Common_Name == "Pacific Cod" & CPUE_data$Year == "2007",]
 
-lin_cod <- CPUE_data[CPUE_data$Common_Name == "Lingcod" & CPUE_data$Year == "2008",]
+lin_cod <- CPUE_data[CPUE_data$Common_Name == "Lingcod" & CPUE_data$Year == "2007",]
 
-oct_pus <- CPUE_data[CPUE_data$Common_Name == "Octopus" & CPUE_data$Year == "2008",]
+oct_pus <- CPUE_data[CPUE_data$Common_Name == "Octopus" & CPUE_data$Year == "2007",]
 
 # Output plots of species into a single figure with reference lines
 
@@ -606,7 +606,7 @@ with(pac_cod, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab =
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
-        paste("Plot of Pacific Cod 2004")))
+        paste("Plot of Pacific Cod 2007")))
 
 abline(a = 0, b = 1, lty = 3)
 
@@ -614,7 +614,7 @@ with(lin_cod, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab =
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
-        paste("Plot of Lingcod 2008")))
+        paste("Plot of Lingcod 2007")))
 
 abline(a = 0, b = 1, lty = 3)
 
@@ -622,7 +622,7 @@ with(oct_pus, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab =
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
-        paste("Plot of Octopus 2008")))
+        paste("Plot of Octopus 2007")))
 
 abline(a = 0, b = 1, lty = 3)
 
@@ -630,7 +630,7 @@ with(dark_fish, plot(Primary_CPUE, Secondary_CPUE, type = "p", xlab =
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
         c(0, max(Primary_CPUE) + .001), ylim = 
         c(0, max(Secondary_CPUE) + .001), main = 
-        paste("Plot of Darblotched Rockfish 2008")))
+        paste("Plot of Darblotched Rockfish 2007")))
 
 abline(a = 0, b = 1, lty = 3)
 ```
