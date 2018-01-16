@@ -223,6 +223,8 @@ conf_int <- array(dim = c(I,5,Y))
 
 conf_int2 <- array(dim = c(I,5,Y))
 
+CPUE_subset <- CPUE_data
+
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
 
@@ -232,6 +234,10 @@ for(i in 1:nrow(unq_key)){
   row <- match(spec, unique(unq_key$Common_Name))
   col <- match(year, unique(unq_key$Year))
   CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,]
+  if(all(CPUE_spec$Primary_CPUE == CPUE_spec$Secondary_CPUE)){
+    CPUE_subset[CPUE_data$Year == year & CPUE_data$Common_Name == spec,] <- NA
+    next
+  }
   png(paste("IPHC_Data/Plots/", spec, year,".png", sep = ""))
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
@@ -573,13 +579,9 @@ Results$Warning[match(NA, Results$Warning)] <- "-**"
 
 # Set all other NA values to '-' and create table of results
 
-Sub_Results <- Results[Results$`p-value` != 1,]
-
-Sub_Results <- Sub_Results[complete.cases(Sub_Results$Species),]
-
 options(knitr.kable.NA = '-')
 
-kable(Sub_Results, caption = "Table 1 IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
+kable(Results, caption = "Table 1 IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species where sample size is the number of stations with that species/year combination.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
 
 ######*Not calculated due to inadequate sample size  
