@@ -223,6 +223,8 @@ conf_int <- array(dim = c(I,5,Y))
 
 conf_int2 <- array(dim = c(I,5,Y))
 
+CPUE_subset <- CPUE_data
+
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
 
@@ -232,6 +234,10 @@ for(i in 1:nrow(unq_key)){
   row <- match(spec, unique(unq_key$Common_Name))
   col <- match(year, unique(unq_key$Year))
   CPUE_spec <- CPUE_data[CPUE_data$Year == year & CPUE_data$Common_Name == spec,]
+  if(all(CPUE_spec$Primary_CPUE == CPUE_spec$Secondary_CPUE)){
+    CPUE_subset[CPUE_data$Year == year & CPUE_data$Common_Name == spec,] <- NA
+    next
+  }
   png(paste("IPHC_Data/Plots/", spec, year,".png", sep = ""))
     plot(CPUE_spec$Primary_CPUE, CPUE_spec$Secondary_CPUE, type = "p", xlab = 
         paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
@@ -292,6 +298,8 @@ for(i in 1:nrow(unq_key)){
 
 # Format all of the results into various dataframes for output into an Word
 # table
+
+CPUE_subset <- CPUE_subset[complete.cases(CPUE_subset),]
 
 colnames(Results) <- unique(unq_key$Year)
 
@@ -416,7 +424,7 @@ conf_int_all <- subset(conf_int_all, select = c("Species", "Year", "Primary Mean
 # Calculate the bootstrapped difference-of-means confidence intervals for
 # each species and year
 
-boot_data <- melt(CPUE_data, id.vars = c("Station", "Year", "Common_Name"))
+boot_data <- melt(CPUE_subset, id.vars = c("Station", "Year", "Common_Name"))
 
 colnames(boot_data) <- c("Station", "Year", "Common_Name", "Type", "CPUE")
 
@@ -479,9 +487,9 @@ boot_result <- boot_result[c(1, 2, 6, 7)]
 
 colnames(boot_result) <- c("Species", "Year", "Lower Bound", "Upper Bound")
 
-colnames(mean_boot) <- unique(CPUE_data$Year)
+colnames(mean_boot) <- unique(CPUE_subset$Year)
 
-rownames(mean_boot) <- unique(CPUE_data$Common_Name)
+rownames(mean_boot) <- unique(CPUE_subset$Common_Name)
 
 mean_boot <- melt(mean_boot)
 
@@ -509,28 +517,43 @@ Keywords: catch-per-unit-effort, CPUE, longlining, bootstrapping, t test, Welch'
 
 #Abstract
 
-Longlining is a commercial fishing technique where a line has branch lines with hooks on them is placed in the water in order to catch certain fish, though other animals are also caught as by-catch. This analysis used two surveys, one from the International Pacific Halibut Commission (IPHC) and one from the National Marine Fisheries Service (NMFS), to compare the catch-per-unit-effort (CPUE) when the first or second fish on a hook is recorded in the event that more than one fish is caught on a hook. The IPHC survey spans across several years and every hook was recorded for each longlining vessel. The NMFS survey is only for 2014, and only 20% of the hooks were recorded for each participating vessel. The unequal variances T Tests on ranks, bootstrapped confidence intervals, and difference of means bootstrapped confidence intervals were used for comparing the CPUE. The unequal variances T Tests on ranks is recommended for non-normally distributed data with suspected unequal variances [@Ruxton2006; @Zimmerman1993]. The tests largely coincided with each other, despite the small sample size in a number of the species and years. The only significant result across all 3 tests was for the octopus in the NMFS survey [n = 19, p-value = 0.00249]. In general, it was found that there is no significant effect on CPUE depending on which fish is reported.
+The catch per unit of effort (CPUE) is a common metric used in stock assessments. In it’s simplest form it is a unit of caught fish divided by a unit of effort. In the case of longline fishing, in which a length of groundline has a number of hooks spaced along the line, the CPUE is often the number of fish per effective hook. In calculating the CPUE, assumptions are made about hook competition, gear placement, predation, etc. In this study we use longline survey data from two fishery-independent surveys operating in the eastern North Pacific Ocean to examine one potential impact of predation. These surveys are used to inform stock assessments and each survey only reports one fish when instances of more than one fish are caught on a single hook. However, one survey records the first caught fish, while the other records the second caught fish. The purpose of this study was to examine if hooking order can impact estimates of CPUE. Two CPUE indices were calculated for each species occurring in multiple fish per hook situations: 1) based on only the first hooked fish; and 2) based only on the second hooked fish. Unequal variances T Tests on ranks, bootstrapped confidence intervals, and difference of means bootstrapped confidence intervals were used for comparing the two CPUEs. The tests largely coincided with each other, despite the small sample size in a number of the species and years. The only significant result across all 3 tests was for the octopus in the NMFS survey (n = 19, p-value = 0.00249). In general, it was found that there is no significant effect on CPUE depending on which fish is reported.
 
 ##Introduction
 
+Fish stock assessments are based on fishery-dependent and -independent data sources, and assume that those data sources are accurate and precise (or if not, uncertainty is included). Metrics of catch, either absolute, such as total catch, or relative, such as catch-per-unit-effort (CPUE), are generally the basis for most stock assessment models. The CPUE is entirely dependent on the data reporting and estimation methods and varies greatly between gear types, fisheries, and standardizations. Thus, for stock assessments, it is critical to have an understanding of the data source and how CPUE is estimated.
+
+There are two primary fishery-independent longline surveys operating in the Gulf of Alaska and the Bering Sea/Aleutian Islands Fishery Management Plan Areas which inform groundfish stock assessments: the International Pacific Halibut Commission (IPHC) annual halibut setline survey; and the National Marine Fisheries Service (NMFS) annual groundfish longline survey. Both surveys provide CPUE estimates of all species caught, however the data recording methods differ. 
+
+The IPHC survey operates along the extent of the United States and Canadian west coasts and north through Alaskan waters (Goen et al. 2018). The number of stations varies slightly from year to year, and the survey has been expanding in recent years. In 2017, 1,493 stations were successfully completed. The IPHC survey samples areas of halibut habitat, and thus the stations are located in waters shallower than 500 m (i.e., continental shelf), and sometimes are near shore. Most stations consist of 5-6 skates of gear, each skate consisting of 100 16/0 baited with chum salmon and spaced 5.5 m apart. For the purposes of estimating CPUE, the relevant data recorded is the number of fish caught, the total number of hooks, the number of observed hooks and the number of observed ineffective hooks. A complete census of hooks is recorded at stations within Canadian waters, while a subsample (the first 20 hooks on each skate) is recorded at stations within U.S. waters. This 20% subsampling is sufficient to accurately extrapolate total catch for most species caught during the survey (Menon et al. 2004).
+
+In contrast, the NMFS survey was designed to sample the slope habitat, which spans from shallow to deep (Sigler and Lunsford XX). This survey fishes 87 stations each year, with most stations ranging from 150 – 1000 m throughout the set. Each station consists of 80 skates of gear, each 100 m with 45 13/0 hooks spaced 2 m apart and baited with squid. This survey records a complete census of all hooks brought onboard, thus no extrapolation from observed catch to total catch is required. The CPUE can simply be calculated as the number caught over the number of effective hooks.
+
+While estimating a CPUE in this manner can be quite straight forward, there are caveats. One such problem is when more than one fish occur on a single hook. This is usually the result of a predation event. A predation event can have three outcomes: 1) prey is hooked, predator attempts to or partially eats prey and is also hooked; 2) prey is hooked, predator completely eats prey and is also hooked; and 3) prey is hooked, predator eats prey but does not get hooked. Case 2 and 3 result in either only the predator on the hook or no hooked fish at all, and because it is impractical to examine the gut contents of every fish caught, observing and recording instances of Case 2 are rare (also assuming no regurgitation). Thus, Case 2 and 3 are unobservable and assumed unknown. Case 1 is observable and data do exist to examine the impact on CPUE estimates. 
+
+Predation such as this has not previously been examined in longline survey data. The NMFS survey records only the prey (i.e., first fish hooked) and ignores any other animals on the hook even though it is usually still retained by the vessel and is thus a removal. The IPHC survey records the predator (the last animal hooked, even in cases with more than one predator) and ignores the prey animal. This case essentially treats the prey animal’s removal as a natural mortality event. The purpose of this project was to examine data from each survey to determine if the method of recording hooked animals (i.e., first or second on the hook) causes a significant change in the overall annual estimate of CPUE that might be used in stock assessments.
+
 ##Methods
 
-The surveys used in this analysis were from the International Pacific Halibut Commission (IPHC) and the National Marine Fisheries Service (NMFS). The IPHC survey used had nearly every hook on the longlines reported, whereas the NMFS survey only had about 20% of the hooks reported. The IPHC was also able to record every fish on each hook, whereas, when two fish are on a hook, NMFS only records one of them. An additional, small survey was used in conjunction with NMFS survey to perform the following analysis on Primary and Secondary CPUE, more on this later. The IPHC survey is a much larger scale than the NMFS survey with a greater number of species, 66 versus 36, respectively.
-Longlining survey data from the IPHC was analyzed to determine if there is a significant difference in CPUE when the first or second fish on a hook is recorded in the event that more than one fish is caught on a single hook. CPUE was calculated as: $\frac{amount of catch}{total hooks-ineffective hooks}$ the amount of catch is all recorded catch of that species on surveyed hooks, total hooks is the number of hooks retrieved, and ineffective hooks are hooks that are bent, broken, missing, etc. The data was divided into two categories: Primary CPUE and Secondary CPUE. The Primary CPUE is the CPUE calculated based on the first fish on a hook and the Secondary CPUE is based on the second fish on a hook. All other instances (only one fish on a hook) exist as normal in both categories. All analyses were conducted in R [@R2017].
+Data from each survey were provided for this analysis. The NMFS survey does not record instances when more than one fish per hook occur, thus a special project was conducted during the 2014 survey to record any instances when a second fish was caught on a single hook. These data were available summarized by station. The IPHC survey has a complete census of hooks and records any instances of multiple fish per hook at all stations occurring in Canadian waters. The IPHC was able to provide the full census data for the years 2004 – 2014.
 
-Mean CPUE for each species caught for each year were compared using unequal variances T Test (Welch's Test) on the ranks of the data. The unequal variances T Test performed on ranks has been shown to be robust against unequal variances and non-normally distributed data [@Ruxton2006; @Zimmerman1993]. All tests were performed at alpha = 0.05. To test for bivariate normality, QQ-plots were constructed of each variable (Primary CPUE and Secondary CPUE) as well as the residuals of a linear model of the two variables to provide a visual indicator of normality. If final test results were not significant the CPUE's were considered to have similar means, thus the catch recorded on the hook (first or second) did not affect the CPUE. This test was conducted across each species caught by the longline surveys. 7 species had 1 sample and were excluded from the tests due programming constraints on the functions performed. Some categories were uninformative for the purpose of this study, so they were combined with other categories. For example, the "Benthic Invertebrates" category is a combination of species ranging from Sea Cucumbers to Sea Pens. For visual analysis, scatterplots were also constructed of each species, plotting Secondary CPUE against Primary CPUE with a linear reference line. Bootstrapping was conducted for each species to calculate confidence intervals about the mean CPUE. For the bootstrapping procedure, we created 1000 replicates for each species and each CPUE (Primary and Secondary) and the adjusted bootstrap percentile (BCa) confidence intervals were used on this bootstrapped dataset to adjust for any bias that may exist in the data. Bootstrapped 2.5th and 97.5th confidence intervals for the difference of means between the two CPUE's were also calculated. For more on bootstrapping, see Efron and Tibshirani [-@Efron1986].
+Due to the shallower depth of the stations on the IPHC survey, the catch is more diverse, `r length(unique(CPUE_data$Common_Name))` observed species and `r length(unique(CPUE_subset$Common_Name))` species with CPUE~s~, compared to the NMFS survey reporting 36 species. Some species categories were uninformative for the purpose of this study, so they were combined with other categories. For example, the “Benthic Invertebrates” category is a combination of species ranging from Sea Cucumbers to Sea Pens.
+
+The CPUE metric used in this project was calculated as the amount of catch divided by the total hooks minus the ineffective hooks. The amount of catch is all recorded catch of that species on surveyed hooks, total hooks is the number of hooks retrieved, and ineffective hooks are hooks that are bent, broken, missing, etc. The data were divided into two categories: Primary hooked fish and Secondary hooked fish. The Primary CPUE is the CPUE calculated based on the first fish on a hook and the Secondary CPUE is based on the second fish on a hook. All other instances (only one fish on a hook) exist as normal in both categories. All analyses were conducted in R [@R2017].
+
+Mean CPUE for each species caught for each year were compared using unequal variances T Test (Welch's Test) on the ranks of the data. The unequal variances T Test performed on ranks has been shown to be robust against unequal variances and non-normally distributed data [@Ruxton2006; @Zimmerman1993]. All tests were performed at alpha = 0.05. To test for bivariate normality, QQ-plots were constructed of each variable (Primary CPUE and Secondary CPUE) as well as the residuals of a linear model of the two variables to provide a visual indicator of normality. If final test results were not significant the CPUE's were considered to have similar means, thus the catch recorded on the hook (first or second) did not affect the CPUE. This test was conducted across each species caught by the longline surveys. 7 species had 1 sample and were excluded from the tests due programming constraints on the functions performed. For visual analysis, scatterplots were also constructed of each species, plotting Secondary CPUE against Primary CPUE with a linear reference line. Bootstrapping was conducted for each species to calculate confidence intervals about the mean CPUE. For the bootstrapping procedure, we created 1000 replicates for each species and each CPUE (Primary and Secondary) and the adjusted bootstrap percentile (BCa) confidence intervals were used on this bootstrapped dataset to adjust for any bias that may exist in the data [@Efron1986]. Bootstrapped 2.5th and 97.5th confidence intervals for the difference of means between the two CPUE’s were also calculated.
 
 ##Results
 
 The results of the unequal variances T Tests for the IPHC survey are shown in *Table 1*. The bootstrapping methods for the IPHC survey are presented in *Table 2* (BCa method) and *Table 3* (difference of means). As shown in *Table 2*, the BCa confidence intervals overlap across most of the interval between the Primary and Secondary CPUE, possessing similar lower and upper bounds and means. *Table 3* shows that the difference of means confidence intervals are largely centered on 0. The exceptions to this are the 2008 Arrowtooth Flounder, 2008 Darkblotched Rockfish (presented in the tables as Darkblotched Rkfish), and 2008 Octopus. The 2008 Darkblotched Rockfish and 2008 Octopus both show significance in the BCa confidence intervals and 2.5th and 97.5th confidence intervals, but only have a sample size of 2. So they are likely not meaningful results. In *Figure 1* and *Figure 2*, the plots and QQ-plots of certain species are presented to represent the varied quality of data in each species. The QQ-plots clearly demonstrate that some of the species violated the assumption of normality, hence the unequal variances T Test was performed on the ranks of the data rather than just the raw data.
 
-The results of the unequal variances T Tests for the NMFS survey are shown in *Table 4*. The bootstrapping methods for the NMFS survey are presented in *Table 5* (BCa method) and *Table 6* (difference of means). It is evident in these tables that most of the species that possessed sufficient samples for analysis do not show significant results. The Octopus is the only species with significant results across all three tests [n = 19, p-value = 0.00249]. The BCa confidence intervals for the Octopus do not overlap and the 2.5th and 97.5th confidence intervals do not contain zero. Also, the Commander Skate, Greenland Turbot, Lingcod, Longnose Skate, Octopus, Pacific Cod, Sablefish, Shortspine Thornyhead, Whiteblotched Skate, and Yelloweye Rockfish 2.5th and 97.5th confidence intervals do not contain zero, though the other tests do not indicate significance. As with the IPHC survey, *Figure 3* and *Figure 4* demonstrate the varied quality of the NMFS data through plots and QQ-plots. 
+The results of the unequal variances T Tests for the NMFS survey are shown in *Table 4*. The bootstrapping methods for the NMFS survey are presented in *Table 5* (BCa method) and *Table 6* (difference of means). It is evident in these tables that most of the species that possessed sufficient samples for analysis do not show significant results. The Octopus is the only species with significant results across all three tests (n = 19, p-value = 0.00249). The BCa confidence intervals for the Octopus do not overlap and the 2.5th and 97.5th confidence intervals do not contain zero. Also, the Commander Skate, Greenland Turbot, Lingcod, Longnose Skate, Octopus, Pacific Cod, Sablefish, Shortspine Thornyhead, Whiteblotched Skate, and Yelloweye Rockfish 2.5th and 97.5th confidence intervals do not contain zero, though the other tests do not indicate significance. As with the IPHC survey, *Figure 3* and *Figure 4* demonstrate the varied quality of the NMFS data through plots and QQ-plots. 
 
 ##Discussion
 
-The results shown for the IPHC survey of the unequal variances T Test indicate that there is no statistical difference between the Primary and Secondary CPUE's. Most of these results appear to fairly high p-values, though not necessarily meaningful. The primary concern with these is the power of the unequal variances T Test, given the small sample size and the generally small difference in the means of many of the samples. As such, many of the values presented in *Table 1* may be unreliable. The bootstrapping methods may be more reliable under these circumstances, though caution with these is still warranted. The results of the unequal variances T Test are supported by the overlapping BCa confidence intervals. This is again supported by the difference of means bootstrapped percentile confidence intervals most of which contain 0 in the interval, indeed most of the means are relatively close to 0. Of the results that showed significance, the 2008 Arrowtooth Flounder appears to just be an error in the 2.5th and 97.5th confidence intervals [-0.0053, -0.00035] since they do not contain 0 yet the mean is on the other side of 0 [0.00012]. The other tests did not show significance for the 2008 Arrowtooth Flounder and are likely accurate due to the sufficient sample size [n = 97]. The 2008 Darkblotched Rockfish and 2008 Octopus both show significance in the BCa confidence intervals and 2.5th and 97.5th confidence intervals, but only have a sample size of 2. So they are likely not meaningful results. This can be seen more clearly in *Figure 1* by observing the Darkblotched Rockfish plot, which clearly shows that, of the two samples, one sample had a much higher Secondary CPUE than Primary CPUE, leading to drastic results in the bootstrapping. Most of the tested species were not shown to be significantly affected by the fish counted on the hook in the event that multiple fish were on the same hook. Upon visual analysis of the scatterplots, the same conclusion can be drawn, since the plots showed that the Primary and Secondary CPUE's were identical most of the time and any deviations were noticeable, but not substantial. This is evident in *Figure 1* when observing the Lingcod, which deviates from the reference line, but only slightly.
+The results shown for the IPHC survey of the unequal variances T Test indicate that there is no statistical difference between the Primary and Secondary CPUE's. Most of these results appear to fairly high p-values, though not necessarily meaningful. The primary concern with these is the power of the unequal variances T Test, given the small sample size and the generally small difference in the means of many of the samples. As such, many of the values presented in *Table 1* may be unreliable. The bootstrapping methods may be more reliable under these circumstances, though caution with these is still warranted. The results of the unequal variances T Test are supported by the overlapping BCa confidence intervals. This is again supported by the difference of means bootstrapped percentile confidence intervals most of which contain 0 in the interval, indeed most of the means are relatively close to 0. Of the results that showed significance, the 2008 Arrowtooth Flounder appears to just be an error in the 2.5th and 97.5th confidence intervals (-0.0053, -0.00035) since they do not contain 0 yet the mean is on the other side of 0 (0.00012). The other tests did not show significance for the 2008 Arrowtooth Flounder and are likely accurate due to the sufficient sample size (n = 97). The 2008 Darkblotched Rockfish and 2008 Octopus both show significance in the BCa confidence intervals and 2.5th and 97.5th confidence intervals, but only have a sample size of 2. So they are likely not meaningful results. This can be seen more clearly in *Figure 1* by observing the Darkblotched Rockfish plot, which clearly shows that, of the two samples, one sample had a much higher Secondary CPUE than Primary CPUE, leading to drastic results in the bootstrapping. Most of the tested species were not shown to be significantly affected by the fish counted on the hook in the event that multiple fish were on the same hook. Upon visual analysis of the scatterplots, the same conclusion can be drawn, since the plots showed that the Primary and Secondary CPUE's were identical most of the time and any deviations were noticeable, but not substantial. This is evident in *Figure 1* when observing the Lingcod, which deviates from the reference line, but only slightly.
 
-The NMFS survey results were very similar to the IPHC survey results. The Octopus showed significant results in the NMFS survey. The species that had a 2.5th and 97.5th confidence interval that did not contain 0 are not considered significant given the results of the other two tests. The octopus showed significance for all 3 tests with a sufficient sample size [n = 19]. The deviation between the Primary and Secondary CPUE can be clearly seen in *Figure 3*. It is unclear what this indicates at this time, though the results show a greater Primary CPUE than Secondary CPUE. A possible reasoning for why most species show no dependence on which fish is recorded is that the occurrence of two fish on the same hook is relatively rare. Of the 1,482,498 hooks analyzed in this study, only 0.048% of them had secondary catch, and of the hooks that had primary catch (excluding inanimate objects and unidentified organic matter), only 0.174% had secondary catch.
+The NMFS survey results were very similar to the IPHC survey results. The Octopus showed significant results in the NMFS survey. The species that had a 2.5th and 97.5th confidence interval that did not contain 0 are not considered significant given the results of the other two tests. The octopus showed significance for all 3 tests with a sufficient sample size (n = 19). The deviation between the Primary and Secondary CPUE can be clearly seen in *Figure 3*. It is unclear what this indicates at this time, though the results show a greater Primary CPUE than Secondary CPUE. A possible reasoning for why most species show no dependence on which fish is recorded is that the occurrence of two fish on the same hook is relatively rare. Of the 1,482,498 hooks analyzed in this study, only 0.048% of them had secondary catch, and of the hooks that had primary catch (excluding inanimate objects and unidentified organic matter), only 0.174% had secondary catch.
 
 ###Acknowledgments
 
@@ -546,25 +569,20 @@ library(knitr, quietly = TRUE)
 
 # Change the first NA value in each column for defining later
 
-Results$`p-value`[match(NA, Results$`p-value`)] <- "-*"
-
 Results$Significance <- as.character(Results$Significance)
-
-Results$Significance[match(NA, Results$Significance)] <- "-*"
 
 Results$Warning <- as.character(Results$Warning)
 
-Results$Warning[match(NA, Results$Warning)] <- "-**"
+Results$Warning[match(NA, Results$Warning)] <- "-*"
 
 # Set all other NA values to '-' and create table of results
 
 options(knitr.kable.NA = '-')
 
-kable(Results, caption = "Table 1 IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
+kable(Results, caption = "Table 1 IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species where sample size is the number of stations with that species/year combination.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
 
-######*Not calculated due to inadequate sample size  
-**No warning, sample size is greater than 1
+######*No warning, sample size is greater than 1
 
 ####
 
@@ -870,11 +888,17 @@ conf_int <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
 
 conf_int2 <- as.data.frame(matrix(NA, ncol = 5, nrow = 1))
 
+catch_subset <- catch_data6
+
 # Create scatterplots, QQ-plots, perform the Welch's T-Test on ranks, and
 # create bootstrapped confidence intervals for each species
 for(i in unique(catch_data6$Common_Name)){
-  CPUE_spec <- subset(catch_data6, catch_data6$Common_Name == i)
-  jpeg(paste("NMFS_Data/Plots/", i,".jpg", sep = ""))
+  CPUE_spec <- catch_data6[catch_data6$Common_Name == i,]
+  if(all(CPUE_spec$priCPUE == CPUE_spec$secCPUE)){
+    catch_subset[catch_data6$Common_Name == i,] <- NA
+    next
+  }
+  png(paste("NMFS_Data/Plots/", i,".png", sep = ""))
   plot(CPUE_spec$priCPUE, CPUE_spec$secCPUE, type = "p", xlab = 
          paste("Primary CPUE"), ylab = paste("Secondary CPUE"), xlim = 
          c(0, max(CPUE_spec$priCPUE) + .001), ylim = 
@@ -933,6 +957,8 @@ for(i in unique(catch_data6$Common_Name)){
 
 # Format all of the results into various dataframes for output into an Excel
 # file
+
+catch_subset <- catch_subset[complete.cases(catch_subset), ]
 
 Results <- data.frame(Results)
 
@@ -1006,7 +1032,7 @@ conf_int_all <- subset(conf_int_all, select = c("Species", "Primary Mean CPUE (L
 # Calculate the bootstrapped difference-of-means confidence intervals for
 # each species
 
-boot_data <- melt(catch_data6, id.vars = c("Station", "Common_Name"))
+boot_data <- melt(catch_subset, id.vars = c("Station", "Common_Name"))
 
 colnames(boot_data) <- c("Station", "Common_Name", "Type", "CPUE")
 
@@ -1062,21 +1088,7 @@ boot_result <- subset(boot_result, select = c("Species", "Mean Difference (Lower
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 
-# Change the first NA value in each column for defining later
-
-Results$`p-value`[match(NA, Results$`p-value`)] <- "-*"
-
-Results$Significance <- as.character(Results$Significance)
-
-Results$Significance[match(NA, Results$Significance)] <- "-*"
-
-Results$Warning <- as.character(Results$Warning)
-
-Results$Warning[match(NA, Results$Warning)] <- "-**"
-
-# Set all other NA values to '-' and create table of results
-
-options(knitr.kable.NA = '-')
+# Create a table of the results
 
 kable(Results, caption = "Table 4 NMFS. All of the species analyzed in the study, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
