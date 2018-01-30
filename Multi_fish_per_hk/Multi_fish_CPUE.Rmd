@@ -1,7 +1,8 @@
 
 ---
-title: "CPUE Analysis"
+title: "CPUE ANALYSIS"
 author: "Danny Cooper"
+date: January 2018
 csl: Format/ecology.csl
 output:
   word_document:
@@ -10,7 +11,6 @@ output:
     toc: yes
 bibliography: Format/library.bib
 ---
-
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = "hide"}
 #===============================================================
 #===============================================================
@@ -907,6 +907,18 @@ boot_result2 <- subset(boot_result2, select = c("Species", "Mean Difference (Low
 #===============================================================
 #===============================================================
 ```
+Auke Bay Laboratories
+
+Alaska Fisheries Science Center
+
+National Marine Fisheries Service
+
+National Oceanic and Atmospheric Administration
+
+17109 Point Lena Loop Road
+
+Juneau, AK, 99801
+
 Keywords: catch-per-unit-effort, CPUE, longlining, bootstrapping, t test, Welch's test
 
 #ABSTRACT
@@ -998,6 +1010,8 @@ kable(conf_int_all, caption = "Table 2 --  IPHC. Bootstrapped 95% bias-corrected
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 
 # Create a table of difference-of-means confidence intervals
+
+boot_result <- na.omit(boot_result)
 
 kable(boot_result, caption = "Table 3 --  IPHC. Bootstrapped 95% percentile confidence intervals of the difference of means between the Primary and Secondary CPUE for each species by year.  The means are included.", row.names = FALSE)
 ```
