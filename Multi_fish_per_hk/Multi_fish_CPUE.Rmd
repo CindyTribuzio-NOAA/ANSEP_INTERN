@@ -979,19 +979,25 @@ It is unclear what the results for the Octopus indicate at this time, though the
 #===============================================================
 library(knitr, quietly = TRUE)
 
-# Change the first NA value in each column for defining later
+# Mark every significant result with "*"
 
-Results$Significance <- as.character(Results$Significance)
+guide <- which(Results$`p-value` < 0.05)
 
-Results$Warning <- as.character(Results$Warning)
+Results$`p-value` <- sprintf("%.4f", round(Results$`p-value`, 4))
 
-Results$Warning[match(NA, Results$Warning)] <- "-*"
+rounding <- which(Results$`p-value` == "0.0000")
 
-# Set all other NA values to '-' and create table of results
+Results$`p-value`[guide] <- sapply(Results$`p-value`[guide], function(x) paste(as.character(x), "*"))
 
-options(knitr.kable.NA = '-')
+Results$`p-value`[rounding] <- sapply(Results$`p-value`[rounding], function(x) paste("<0.0001 *"))
 
-kable(Results, caption = "Table 1 --  IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species where sample size is the number of stations with that species/year combination.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
+# Remove Warning and Significance column since they are only for analysis
+
+Results <- Results[, c("Species", "Year", "p-value", "Sample Size")]
+
+# Create table of results
+
+kable(Results, caption = "Table 1 --  IPHC. All of the species analyzed in the study by year, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species where sample size is the number of stations with that species/year combination.", digits = 4, row.names = FALSE, format.args = list(na.encode = TRUE))
 ```
 
 ######*No warning, sample size is greater than 1
