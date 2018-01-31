@@ -407,17 +407,17 @@ conf_int_all <- merge(conf_int_all, Means, by = c("Species", "Year"), all = TRUE
 
 conf_int_all <- na.omit(conf_int_all)
 
-conf_int_all$`Primary Mean CPUE` <- round(conf_int_all$`Primary Mean CPUE`, 3)
+conf_int_all$`Primary Mean CPUE` <- sprintf("%.4f", round(conf_int_all$`Primary Mean CPUE`, 4))
 
-conf_int_all$`Primary Lower CPUE` <- round(conf_int_all$`Primary Lower CPUE`, 3)
+conf_int_all$`Primary Lower CPUE` <- sprintf("%.4f", round(conf_int_all$`Primary Lower CPUE`, 4))
 
-conf_int_all$`Primary Upper CPUE` <- round(conf_int_all$`Primary Upper CPUE`, 3)
+conf_int_all$`Primary Upper CPUE` <- sprintf("%.4f", round(conf_int_all$`Primary Upper CPUE`, 4))
 
-conf_int_all$`Secondary Mean CPUE` <- round(conf_int_all$`Secondary Mean CPUE`, 3)
+conf_int_all$`Secondary Mean CPUE` <- sprintf("%.4f", round(conf_int_all$`Secondary Mean CPUE`, 4))
 
-conf_int_all$`Secondary Lower CPUE` <- round(conf_int_all$`Secondary Lower CPUE`, 3)
+conf_int_all$`Secondary Lower CPUE` <- sprintf("%.4f", round(conf_int_all$`Secondary Lower CPUE`, 4))
 
-conf_int_all$`Secondary Upper CPUE` <- round(conf_int_all$`Secondary Upper CPUE`, 3)
+conf_int_all$`Secondary Upper CPUE` <- sprintf("%.4f", round(conf_int_all$`Secondary Upper CPUE`, 4))
 
 conf_int_all$`Primary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all$`Primary Mean CPUE`, " (", conf_int_all$`Primary Lower CPUE`, ", ", conf_int_all$`Primary Upper CPUE`, ")", sep = "")
 
@@ -499,17 +499,15 @@ mean_boot <- melt(mean_boot)
 
 colnames(mean_boot) <- c("Species", "Year", "Mean Difference")
 
-mean_boot <- na.omit(mean_boot)
+boot_result <- merge(mean_boot, boot_result, by = c("Species", "Year"), all = TRUE)
 
 boot_result <- na.omit(boot_result)
 
-boot_result <- merge(mean_boot, boot_result, by = c("Species", "Year"), all = TRUE)
+boot_result$`Mean Difference` <- sprintf("%.4f", round(boot_result$`Mean Difference`, 4))
 
-boot_result$`Mean Difference` <- signif(boot_result$`Mean Difference`, 2)
+boot_result$`Lower Bound` <- sprintf("%.4f", round(boot_result$`Lower Bound`, 4))
 
-boot_result$`Lower Bound` <- signif(boot_result$`Lower Bound`, 2)
-
-boot_result$`Upper Bound` <- signif(boot_result$`Upper Bound`, 2)
+boot_result$`Upper Bound` <- sprintf("%.4f", round(boot_result$`Upper Bound`, 4))
 
 boot_result$`Mean Difference (Lower Bound, Upper Bound)` <- paste(boot_result$`Mean Difference`, " (", boot_result$`Lower Bound`, ", ", boot_result$`Upper Bound`, ")", sep = "")
 
@@ -833,17 +831,17 @@ colnames(conf_int_all2) <- c("Species", "Primary Lower CPUE", "Primary Upper CPU
 
 conf_int_all2 <- merge(conf_int_all2, means_all2, by = "Species", all = TRUE)
 
-conf_int_all2$`Primary Mean CPUE` <- round(conf_int_all2$`Primary Mean CPUE`, 4)
+conf_int_all2$`Primary Mean CPUE` <- sprintf("%.4f", round(conf_int_all2$`Primary Mean CPUE`, 4))
 
-conf_int_all2$`Primary Lower CPUE` <- round(conf_int_all2$`Primary Lower CPUE`, 4)
+conf_int_all2$`Primary Lower CPUE` <- sprintf("%.4f", round(conf_int_all2$`Primary Lower CPUE`, 4))
 
-conf_int_all2$`Primary Upper CPUE` <- round(conf_int_all2$`Primary Upper CPUE`, 4)
+conf_int_all2$`Primary Upper CPUE` <- sprintf("%.4f", round(conf_int_all2$`Primary Upper CPUE`, 4))
 
-conf_int_all2$`Secondary Mean CPUE` <- round(conf_int_all2$`Secondary Mean CPUE`, 4)
+conf_int_all2$`Secondary Mean CPUE` <- sprintf("%.4f", round(conf_int_all2$`Secondary Mean CPUE`, 4))
 
-conf_int_all2$`Secondary Lower CPUE` <- round(conf_int_all2$`Secondary Lower CPUE`, 4)
+conf_int_all2$`Secondary Lower CPUE` <- sprintf("%.4f", round(conf_int_all2$`Secondary Lower CPUE`, 4))
 
-conf_int_all2$`Secondary Upper CPUE` <- round(conf_int_all2$`Secondary Upper CPUE`, 4)
+conf_int_all2$`Secondary Upper CPUE` <- sprintf("%.4f", round(conf_int_all2$`Secondary Upper CPUE`, 4))
 
 conf_int_all2$`Primary Mean CPUE (Lower Bound, Upper Bound)` <- paste(conf_int_all2$`Primary Mean CPUE`, " (", conf_int_all2$`Primary Lower CPUE`, ", ", conf_int_all2$`Primary Upper CPUE`, ")", sep = "")
 
@@ -895,11 +893,11 @@ boot_result2 <- merge(diff_mean_results2, boot_result2, by = "row.names", all = 
 
 colnames(boot_result2) <- c("Species", "Mean Difference", "Lower Bound", "Upper Bound")
 
-boot_result2$`Mean Difference` <- signif(boot_result2$`Mean Difference`, 2)
+boot_result2$`Mean Difference` <- sprintf("%.4f", round(boot_result2$`Mean Difference`, 4))
 
-boot_result2$`Lower Bound` <- signif(boot_result2$`Lower Bound`, 2)
+boot_result2$`Lower Bound` <- sprintf("%.4f", round(boot_result2$`Lower Bound`, 4))
 
-boot_result2$`Upper Bound` <- signif(boot_result2$`Upper Bound`, 2)
+boot_result2$`Upper Bound` <- sprintf("%.4f", round(boot_result2$`Upper Bound`, 4))
 
 boot_result2$`Mean Difference (Lower Bound, Upper Bound)` <- paste(boot_result2$`Mean Difference`, " (", boot_result2$`Lower Bound`, ", ", boot_result2$`Upper Bound`, ")", sep = "")
 
@@ -943,11 +941,11 @@ Predation such as this has not previously been examined in longline survey data.
 
 Data from each survey were provided for this analysis. The NMFS survey does not record instances when more than one fish per hook occur, thus a special project was conducted during the 2014 survey to record any instances when a second fish was caught on a single hook. These data were available summarized by station. The IPHC survey has a complete census of hooks and records any instances of multiple fish per hook at all stations occurring in Canadian waters. The IPHC was able to provide the full census data for the years 2004 – 2014.
 
-Due to the shallower depth of the stations on the IPHC survey, the catch is more diverse, `r length(unique(CPUE_data$Common_Name))` observed species and `r length(unique(CPUE_subset$Common_Name))` species with a different CPUE~s~ than CPUE~p~, compared to the NMFS survey reporting `r length(unique(catch_data6$Common_Name))` observed species and `r length(unique(catch_subset$Common_Name))` species with a different CPUE~s~ than CPUE~p~. Some species categories were uninformative for the purpose of this study, so they were combined with other categories. For example, the “Benthic Invertebrates” category is a combination of species ranging from Sea Cucumbers to Sea Pens.
+Due to the shallower depth of the stations on the IPHC survey, the catch is more diverse, `r length(unique(CPUE_data$Common_Name))` observed species and `r length(unique(CPUE_subset$Common_Name))` species with a different CPUE~s~ (secondary catch counted) than CPUE~p~ (primary catch counted), compared to the NMFS survey reporting `r length(unique(catch_data6$Common_Name))` observed species and `r length(unique(catch_subset$Common_Name))` species with a different CPUE~s~ than CPUE~p~. Some species categories were uninformative for the purpose of this study, so they were combined with other categories. For example, the “Benthic Invertebrates” category is a combination of species ranging from Sea Cucumbers to Sea Pens.
 
 The CPUE metric used in this project was calculated as the amount of catch divided by the total hooks minus the ineffective hooks. The amount of catch is all recorded catch of that species on surveyed hooks, total hooks is the number of hooks retrieved, and ineffective hooks are hooks that are bent, broken, missing, etc. The data were divided into two categories: Primary hooked fish and Secondary hooked fish. The CPUE~p~ is the CPUE calculated based on the first fish on a hook and the CPUE~s~ is based on the second fish on a hook. All other instances (only one fish on a hook) exist as normal in both categories. All analyses were conducted in R [@R2017].
 
-The CPUEs calculated for each station were then used to calculate a mean CPUE for each species caught for each year. The number of stations with a CPUE for any given species is the sample size referred to in *Table 1* and *Table 4*. An unequal variances T Test (Welch's Test) on the ranks of the mean CPUEs for the comparison of the mean CPUE~p~ CPUE~s~. The unequal variances T Test performed on ranks has been shown to be robust against unequal variances and non-normally distributed data [@Ruxton2006; @Zimmerman1993]. All tests were performed at $\alpha$ = 0.05. To qualitatively determine bivariate normality, QQ-plots were constructed of each variable (CPUE~p~ and CPUE~s~) as well as the residuals of a linear model of the two variables to provide a visual indicator of normality. If final test results were not significant the CPUE's were considered to have similar means, thus the catch recorded on the hook (first or second) did not affect the CPUE. This test was conducted across each species caught by the longline surveys. Scatterplots were also constructed of each species, plotting CPUE~s~ against CPUE~p~ with a linear reference line, a subset of these are shown in *Figure 1* and *Figure 2*. Bootstrapping was conducted for each species to calculate confidence intervals about the mean CPUE. For the bootstrapping procedure, we created 1000 replicates for each species, CPUE~p~, and CPUE~s~ and the adjusted bootstrap percentile (BCa) confidence intervals were used on this bootstrapped dataset to adjust for any bias that may exist in the data [@Efron1986]. Bootstrapped 2.5th and 97.5th confidence intervals for the difference of means between the two CPUE’s were also calculated.
+The CPUEs calculated for each station were then used to calculate a mean CPUE for each species caught for each year. The number of stations with a CPUE for any given species is the sample size referred to in *Table 1* and *Table 4*. An unequal variances T Test (Welch's Test) on the ranks of the mean CPUEs for the comparison of the mean CPUE~p~ and CPUE~s~. The unequal variances T Test performed on ranks has been shown to be robust against unequal variances and non-normally distributed data [@Ruxton2006; @Zimmerman1993]. All tests were performed at $\alpha$ = 0.05. To qualitatively determine bivariate normality, QQ-plots were constructed of each variable (CPUE~p~ and CPUE~s~) as well as the residuals of a linear model of the two variables to provide a visual indicator of normality. If final test results were not significant the CPUE's were considered to have similar means, thus the catch recorded on the hook (first or second) did not affect the CPUE. This test was conducted across each species caught by the longline surveys. Scatterplots were also constructed of each species, plotting CPUE~s~ against CPUE~p~ with a linear reference line, a subset of these are shown in *Figure 1* and *Figure 2*. Bootstrapping was conducted for each species to calculate confidence intervals about the mean CPUE. For the bootstrapping procedure, we created 1000 replicates for each species, CPUE~p~, and CPUE~s~ and the adjusted bootstrap percentile (BCa) confidence intervals were used on this bootstrapped dataset to adjust for any bias that may exist in the data [@Efron1986]. Bootstrapped 2.5th and 97.5th confidence intervals for the difference of means between the two CPUE’s were also calculated.
 
 ##RESULTS
 
@@ -977,8 +975,6 @@ It is unclear what the results for the Octopus indicate at this time, though the
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 #===============================================================
 #===============================================================
-library(knitr, quietly = TRUE)
-
 # Mark every significant result with "*"
 
 guide <- which(Results$`p-value` < 0.05)
@@ -987,9 +983,9 @@ Results$`p-value` <- sprintf("%.4f", round(Results$`p-value`, 4))
 
 rounding <- which(Results$`p-value` == "0.0000")
 
-Results$`p-value`[guide] <- sapply(Results$`p-value`[guide], function(x) paste(as.character(x), "*"))
+Results$`p-value`[rounding] <- sapply(Results$`p-value`[rounding], function(x) paste("<0.0001"))
 
-Results$`p-value`[rounding] <- sapply(Results$`p-value`[rounding], function(x) paste("<0.0001 *"))
+Results$`p-value`[guide] <- sapply(Results$`p-value`[guide], function(x) paste(as.character(x), "*"))
 
 # Remove Warning and Significance column since they are only for analysis
 
@@ -1016,8 +1012,6 @@ kable(conf_int_all, caption = "Table 2 --  IPHC. Bootstrapped 95% bias-corrected
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 
 # Create a table of difference-of-means confidence intervals
-
-boot_result <- na.omit(boot_result)
 
 kable(boot_result, caption = "Table 3 --  IPHC. Bootstrapped 95% percentile confidence intervals of the difference of means between the Primary and Secondary CPUE for each species by year.  The means are included.", row.names = FALSE)
 ```
@@ -1046,6 +1040,22 @@ plot_image + facet_wrap( ~ Common_Name_Order + Year, ncol = 3, dir = "v")
 ```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
 #===============================================================
 #===============================================================
+# Mark every significant result with "*"
+
+guide <- which(Results2$`p-value` < 0.05)
+
+Results2$`p-value` <- sprintf("%.4f", round(Results2$`p-value`, 4))
+
+rounding <- which(Results2$`p-value` == "0.0000")
+
+Results2$`p-value`[rounding] <- sapply(Results2$`p-value`[rounding], function(x) paste("<0.0001"))
+
+Results2$`p-value`[guide] <- sapply(Results2$`p-value`[guide], function(x) paste(as.character(x), "*"))
+
+# Remove 'Significance' column as it is only used for analysis
+
+Results2 <- Results2[, c("Species", "p-value", "Sample Size")]
+
 # Create a table of the results
 
 kable(Results2, caption = "Table 4 --  NMFS. All of the species analyzed in the study, presenting the p-value for the test performed, the significance of that test, the test used, a warning column to indicate inadequate samples, and the sample size for that species.", digits = 3, row.names = FALSE, format.args = list(na.encode = TRUE))
