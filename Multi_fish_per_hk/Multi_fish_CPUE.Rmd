@@ -1052,11 +1052,19 @@ kable(boot_result, caption = "Table 3 --  IPHC. Bootstrapped 95% percentile conf
 
 plot_data <- CPUE_subset[CPUE_subset$Common_Name %in% c("Thornyhead", "Octopus", "Darkblotched Rkfish", "Sixgill Shark"),]
 
-plot_data$Common_Name_Order <- factor(plot_data$Common_Name, levels = c("Octopus", "Thornyhead", "Sixgill Shark", "Darkblotched Rkfish"))
+plot_data$Deviation <- plot_data$Secondary_CPUE - plot_data$Primary_CPUE
 
-plot_image <- ggplot(plot_data, aes(Primary_CPUE, Secondary_CPUE)) + geom_point() + geom_abline(slope = 1, intercept = 0) + labs(x = "Primary CPUE", y = "Secondary CPUE")
+plot_data$`Proportional Deviation` <- (plot_data$Secondary_CPUE - plot_data$Primary_CPUE)/plot_data$Primary_CPUE
 
-plot_image + facet_wrap( ~ Common_Name_Order + Year, ncol = 3, dir = "v")
+plot_data$`Proportional Deviation` <- sapply(plot_data$`Proportional Deviation`, function(x) ifelse(x == Inf, 1, x))
+
+plot_data$Species <- factor(plot_data$Common_Name, levels = c("Octopus", "Thornyhead", "Sixgill Shark", "Darkblotched Rkfish"))
+
+melt_plot_data <- melt(plot_data, id.vars = c("Species", "Year"), measure.vars = c("Deviation", "Proportional Deviation"), variable_name = "Deviations")
+
+plot_image <- ggplot(melt_plot_data, aes(Species, value, col = factor(Year), shape = Species)) + geom_point(position = "jitter") + geom_abline(slope = 0, intercept = 0) + labs(x = "Species", y = "Deviation", col = "Year") + theme_bw() + facet_wrap(~ Deviations, scales = "free_y", nrow = 2)
+
+plot_image
 #===============================================================
 #===============================================================
 ```
@@ -1121,11 +1129,19 @@ kable(boot_result2, caption = "Table 6 --  NMFS. Bootstrapped 95% percentile con
 
 plot_data2 <- catch_data6[catch_data6$Common_Name %in% c("Shortspine thornyhead", "Octopus", "Lingcod", "Pacific cod"),]
 
-plot_data2$Common_Name_Order <- factor(plot_data2$Common_Name, levels = c("Octopus", "Shortspine thornyhead", "Lingcod", "Pacific cod"))
+plot_data2$Deviation <- plot_data2$secCPUE - plot_data2$priCPUE
 
-plot_image2 <- ggplot(plot_data2, aes(priCPUE, secCPUE)) + geom_point() + geom_abline(slope = 1, intercept = 0) + labs(x = "Primary CPUE", y = "Secondary CPUE")
+plot_data2$`Proportional Deviation` <- (plot_data2$secCPUE - plot_data2$priCPUE)/plot_data2$priCPUE
 
-plot_image2 + facet_wrap( ~ Common_Name_Order, ncol = 2, dir = "h")
+plot_data2$`Proportional Deviation` <- sapply(plot_data2$`Proportional Deviation`, function(x) ifelse(x == Inf, 1, x))
+
+plot_data2$Species <- factor(plot_data2$Common_Name, levels = c("Octopus", "Shortspine thornyhead", "Lingcod", "Pacific cod"))
+
+melt_plot_data2 <- melt(plot_data2, id.vars = "Species", measure.vars = c("Deviation", "Proportional Deviation"), variable_name = "Deviations")
+
+plot_image2 <- ggplot(melt_plot_data2, aes(Species, value, shape = Species)) + geom_point(position = "jitter") + geom_abline(slope = 0, intercept = 0) + labs(x = "Species", y = "Deviation") + theme_bw() + facet_wrap( ~ Deviations, scales = "free_y", nrow = 2)
+
+plot_image2
 #===============================================================
 #===============================================================
 ```
