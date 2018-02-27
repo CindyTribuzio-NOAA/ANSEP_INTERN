@@ -1050,19 +1050,33 @@ kable(boot_result, caption = "Table 3 --  IPHC. Bootstrapped 95% percentile conf
 
 # Store data for representative species and year
 
-plot_data <- CPUE_subset[CPUE_subset$Common_Name %in% c("Thornyhead", "Octopus", "Darkblotched Rkfish", "Sixgill Shark"),]
+spec_data <- CPUE_subset[CPUE_subset$Common_Name %in% c("Thornyhead", "Octopus", "Darkblotched Rkfish", "Sixgill Shark"),]
 
-plot_data$Deviation <- plot_data$Secondary_CPUE - plot_data$Primary_CPUE
+spec_data$Deviation <- spec_data$Secondary_CPUE - spec_data$Primary_CPUE
 
-plot_data$`Proportional Deviation` <- (plot_data$Secondary_CPUE - plot_data$Primary_CPUE)/plot_data$Primary_CPUE
+different <- which(spec_data$Primary_CPUE != spec_data$Secondary_CPUE)
 
-plot_data$`Proportional Deviation` <- sapply(plot_data$`Proportional Deviation`, function(x) ifelse(x == Inf, 1, x))
+plot_data <- spec_data[different, ]
+
+spec_data <- spec_data[order(spec_data$Common_Name),]
+
+spec_data$Species <- factor(spec_data$Common_Name, levels = c("Octopus", "Thornyhead", "Sixgill Shark", "Darkblotched Rkfish"))
+
+plot_data <- plot_data[order(plot_data$Common_Name),]
+
+plot_data$`Deviation` <- with(plot_data, as.vector(unlist(tapply(Deviation, Common_Name, function(x) (x - min(x))/(max(x) - min(x))))))
+
+plot_data$`Deviation`[is.nan(plot_data$`Deviation`)] <- 0.5
 
 plot_data$Species <- factor(plot_data$Common_Name, levels = c("Octopus", "Thornyhead", "Sixgill Shark", "Darkblotched Rkfish"))
 
-melt_plot_data <- melt(plot_data, id.vars = c("Species", "Year"), measure.vars = c("Deviation", "Proportional Deviation"), variable_name = "Deviations")
+spec_data$Set <- "Anomaly"
 
-plot_image <- ggplot(melt_plot_data, aes(Species, value, col = factor(Year), shape = Species)) + geom_point(position = "jitter") + geom_abline(slope = 0, intercept = 0) + labs(x = "Species", y = "Deviation", col = "Year") + theme_bw() + facet_wrap(~ Deviations, scales = "free_y", nrow = 2)
+plot_data$Set <- "Standardized Anomaly"
+
+set_data <- rbind(spec_data, plot_data)
+
+plot_image <- ggplot(set_data, aes(Species, Deviation, col = factor(Year), shape = Species)) + geom_point(position = "jitter") + labs(x = "Species", y = "Anomaly", col = "Year") + theme_bw() + facet_wrap( ~ Set, scales = "free_y", nrow = 2)
 
 plot_image
 #===============================================================
@@ -1127,19 +1141,33 @@ kable(boot_result2, caption = "Table 6 --  NMFS. Bootstrapped 95% percentile con
 
 # Store data for representative species and year
 
-plot_data2 <- catch_data6[catch_data6$Common_Name %in% c("Shortspine thornyhead", "Octopus", "Lingcod", "Pacific cod"),]
+spec_data2 <- catch_data6[catch_data6$Common_Name %in% c("Shortspine thornyhead", "Octopus", "Lingcod", "Pacific cod"),]
 
-plot_data2$Deviation <- plot_data2$secCPUE - plot_data2$priCPUE
+spec_data2$Deviation <- spec_data2$secCPUE - spec_data2$priCPUE
 
-plot_data2$`Proportional Deviation` <- (plot_data2$secCPUE - plot_data2$priCPUE)/plot_data2$priCPUE
+different2 <- which(spec_data2$priCPUE != spec_data2$secCPUE)
 
-plot_data2$`Proportional Deviation` <- sapply(plot_data2$`Proportional Deviation`, function(x) ifelse(x == Inf, 1, x))
+plot_data2 <- spec_data2[different2, ]
+
+spec_data2 <- spec_data2[order(spec_data2$Common_Name),]
+
+spec_data2$Species <- factor(spec_data2$Common_Name, levels = c("Octopus", "Shortspine thornyhead", "Lingcod", "Pacific cod"))
+
+plot_data2 <- plot_data2[order(plot_data2$Common_Name),]
+
+plot_data2$`Deviation` <- with(plot_data2, as.vector(unlist(tapply(Deviation, Common_Name, function(x) (x - min(x))/(max(x) - min(x))))))
+
+plot_data2$`Deviation`[is.nan(plot_data2$`Deviation`)] <- 0.5
 
 plot_data2$Species <- factor(plot_data2$Common_Name, levels = c("Octopus", "Shortspine thornyhead", "Lingcod", "Pacific cod"))
 
-melt_plot_data2 <- melt(plot_data2, id.vars = "Species", measure.vars = c("Deviation", "Proportional Deviation"), variable_name = "Deviations")
+spec_data2$Set <- "Anomaly"
 
-plot_image2 <- ggplot(melt_plot_data2, aes(Species, value, shape = Species)) + geom_point(position = "jitter") + geom_abline(slope = 0, intercept = 0) + labs(x = "Species", y = "Deviation") + theme_bw() + facet_wrap( ~ Deviations, scales = "free_y", nrow = 2)
+plot_data2$Set <- "Standardized Anomaly"
+
+set_data2 <- rbind(spec_data2, plot_data2)
+
+plot_image2 <- ggplot(set_data2, aes(Species, Deviation, shape = Species)) + geom_point(position = "jitter") + labs(x = "Species", y = "Anomaly") + theme_bw() + facet_wrap( ~ Set, scales = "free_y", nrow = 2)
 
 plot_image2
 #===============================================================
